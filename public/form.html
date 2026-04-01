@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise de Processo | Agile Intermediação</title>
+    <meta name="description" content="Solicite uma análise técnica gratuita do seu processo trabalhista para antecipação de crédito.">
+    <link rel="stylesheet" href="styles/main.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .form-container {
+            max-width: 600px;
+            margin: var(--spacing-xl) auto;
+            padding: var(--spacing-md);
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: var(--spacing-md);
+            position: relative;
+        }
+        .step-indicator::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            z-index: 1;
+        }
+        .step-dot {
+            width: 32px;
+            height: 32px;
+            background: var(--color-primary-dark);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: var(--transition);
+        }
+        .step-dot.active {
+            border-color: var(--color-gold);
+            color: var(--color-gold);
+            background: rgba(197, 160, 89, 0.1);
+        }
+        .step-dot.completed {
+            background: var(--color-gold);
+            border-color: var(--color-gold);
+            color: var(--color-primary-dark);
+        }
+        .form-step {
+            display: none;
+        }
+        .form-step.active {
+            display: block;
+            animation: fadeIn 0.5s ease-out;
+        }
+        .form-group {
+            margin-bottom: var(--spacing-sm);
+        }
+        label {
+            display: block;
+            font-family: var(--font-heading);
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--border-radius);
+            color: var(--color-off-white);
+            font-family: var(--font-body);
+            transition: var(--transition);
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--color-gold);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        select option {
+            background: var(--color-primary-dark);
+            color: var(--color-off-white);
+        }
+        .form-nav {
+            display: flex;
+            justify-content: space-between;
+            margin-top: var(--spacing-md);
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin-top: var(--spacing-sm);
+            padding: 1rem;
+            background: rgba(197, 160, 89, 0.05);
+            border: 1px solid rgba(197, 160, 89, 0.15);
+            border-radius: var(--border-radius);
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            min-width: 20px;
+            height: 20px;
+            margin-top: 2px;
+            cursor: pointer;
+            accent-color: var(--color-gold);
+        }
+        .checkbox-group label {
+            font-size: 0.85rem;
+            font-weight: 400;
+            font-family: var(--font-body);
+            color: var(--color-neutral);
+            cursor: pointer;
+            margin-bottom: 0;
+        }
+        .field-error {
+            color: #ff4d4d;
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+            display: none;
+        }
+        .field-error.visible {
+            display: block;
+        }
+        input.error, select.error, textarea.error {
+            border-color: #ff4d4d !important;
+        }
+        .checkbox-group.error {
+            border-color: #ff4d4d !important;
+        }
+        .form-loading {
+            position: relative;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(0, 31, 38, 0.3);
+            border-top-color: var(--color-primary-dark);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-right: 0.5rem;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .form-error-banner {
+            background: rgba(255, 77, 77, 0.1);
+            border: 1px solid rgba(255, 77, 77, 0.3);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            margin-bottom: var(--spacing-sm);
+            display: none;
+            color: #ff4d4d;
+            font-size: 0.9rem;
+        }
+        .form-error-banner.visible {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="container header-content">
+            <div class="logo">
+                <a href="index.html"><span class="text-gold">AGILE</span> INTERMEDIAÇÃO</a>
+            </div>
+            <a href="index.html" class="text-muted">Voltar ao Início</a>
+        </div>
+    </header>
+
+    <main>
+        <div class="form-container">
+            <div class="reveal active text-center">
+                <h2 class="section-title">Análise de Processo</h2>
+                <p class="text-muted mb-2">Preencha os dados abaixo para uma avaliação técnica gratuita.</p>
+            </div>
+
+            <div id="formErrorBanner" class="form-error-banner">
+                <strong>Erro:</strong> <span id="formErrorMessage"></span>
+            </div>
+
+            <div class="step-indicator">
+                <div class="step-dot active" data-step="1">1</div>
+                <div class="step-dot" data-step="2">2</div>
+                <div class="step-dot" data-step="3">3</div>
+                <div class="step-dot" data-step="4">4</div>
+            </div>
+
+            <form id="intakeForm" class="card" novalidate>
+                <!-- Hidden fields for UTM & source tracking -->
+                <input type="hidden" name="sourcePage" id="sourcePage">
+                <input type="hidden" name="utmSource" id="utmSource">
+                <input type="hidden" name="utmMedium" id="utmMedium">
+                <input type="hidden" name="utmCampaign" id="utmCampaign">
+
+                <!-- Step 1: Identificação -->
+                <div class="form-step active" data-step="1">
+                    <h3>Identificação Inicial</h3>
+                    <p class="text-muted mb-1">Quem está solicitando a análise?</p>
+                    <div class="form-group">
+                        <label for="userRole">Eu sou:</label>
+                        <select name="userRole" id="userRole" required>
+                            <option value="">Selecione uma opção</option>
+                            <option value="advogado">Advogado</option>
+                            <option value="reclamante">Reclamante (Trabalhador)</option>
+                            <option value="outro">Outro</option>
+                        </select>
+                        <div class="field-error" id="userRoleError">Selecione o tipo de solicitante.</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="userName">Nome Completo</label>
+                        <input type="text" name="userName" id="userName" placeholder="Seu nome completo" required>
+                        <div class="field-error" id="userNameError">Informe seu nome completo.</div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Detalhes do Processo -->
+                <div class="form-step" data-step="2">
+                    <h3>Detalhes do Processo</h3>
+                    <div class="form-group">
+                        <label for="processNumber">Número do Processo (CNJ)</label>
+                        <input type="text" name="processNumber" id="processNumber" placeholder="0000000-00.0000.0.00.0000" required>
+                        <div class="field-error" id="processNumberError">Informe o número do processo.</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="tribunal">Tribunal / Região (TRT)</label>
+                        <select name="tribunal" id="tribunal">
+                            <option value="">Selecione o tribunal</option>
+                            <option value="TRT-1">TRT-1 — Rio de Janeiro</option>
+                            <option value="TRT-2">TRT-2 — São Paulo (Capital)</option>
+                            <option value="TRT-3">TRT-3 — Minas Gerais</option>
+                            <option value="TRT-4">TRT-4 — Rio Grande do Sul</option>
+                            <option value="TRT-5">TRT-5 — Bahia</option>
+                            <option value="TRT-6">TRT-6 — Pernambuco</option>
+                            <option value="TRT-7">TRT-7 — Ceará</option>
+                            <option value="TRT-8">TRT-8 — Pará / Amapá</option>
+                            <option value="TRT-9">TRT-9 — Paraná</option>
+                            <option value="TRT-10">TRT-10 — Distrito Federal / Tocantins</option>
+                            <option value="TRT-11">TRT-11 — Amazonas / Roraima</option>
+                            <option value="TRT-12">TRT-12 — Santa Catarina</option>
+                            <option value="TRT-13">TRT-13 — Paraíba</option>
+                            <option value="TRT-14">TRT-14 — Rondônia / Acre</option>
+                            <option value="TRT-15">TRT-15 — Campinas (SP Interior)</option>
+                            <option value="TRT-16">TRT-16 — Maranhão</option>
+                            <option value="TRT-17">TRT-17 — Espírito Santo</option>
+                            <option value="TRT-18">TRT-18 — Goiás</option>
+                            <option value="TRT-19">TRT-19 — Alagoas</option>
+                            <option value="TRT-20">TRT-20 — Sergipe</option>
+                            <option value="TRT-21">TRT-21 — Rio Grande do Norte</option>
+                            <option value="TRT-22">TRT-22 — Piauí</option>
+                            <option value="TRT-23">TRT-23 — Mato Grosso</option>
+                            <option value="TRT-24">TRT-24 — Mato Grosso do Sul</option>
+                            <option value="TST">TST — Tribunal Superior do Trabalho</option>
+                            <option value="outro">Outro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="defendantCompany">Nome da Empresa Ré</label>
+                        <input type="text" name="defendantCompany" id="defendantCompany" placeholder="Nome da empresa reclamada">
+                    </div>
+                </div>
+
+                <!-- Step 3: Valores e Status -->
+                <div class="form-step" data-step="3">
+                    <h3>Valores Estimados</h3>
+                    <div class="form-group">
+                        <label for="processValue">Valor estimado da causa (R$)</label>
+                        <input type="number" name="processValue" id="processValue" placeholder="Valor aproximado" min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="processStage">Fase atual do processo</label>
+                        <select name="processStage" id="processStage">
+                            <option value="">Selecione a fase</option>
+                            <option value="conhecimento">Processo em conhecimento</option>
+                            <option value="sentenca">Sentença proferida</option>
+                            <option value="recurso">Recurso em andamento</option>
+                            <option value="acordo">Acordo homologado</option>
+                            <option value="execucao">Execução</option>
+                            <option value="calculos">Cálculos / liquidação</option>
+                            <option value="outro">Outro / não sei</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Step 4: Contato + Observações + Consentimento -->
+                <div class="form-step" data-step="4">
+                    <h3>Dados de Contato</h3>
+                    <div class="form-group">
+                        <label for="contactEmail">E-mail Profissional/Pessoal</label>
+                        <input type="email" name="contactEmail" id="contactEmail" placeholder="seu@email.com" required>
+                        <div class="field-error" id="contactEmailError">Informe um e-mail válido.</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="contactPhone">Telefone / WhatsApp</label>
+                        <input type="tel" name="contactPhone" id="contactPhone" placeholder="(00) 00000-0000" required>
+                        <div class="field-error" id="contactPhoneError">Informe um telefone válido (mínimo 10 dígitos).</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="notes">Observações (opcional)</label>
+                        <textarea name="notes" id="notes" placeholder="Informações adicionais sobre o caso..."></textarea>
+                    </div>
+                    <div class="checkbox-group" id="consentGroup">
+                        <input type="checkbox" name="privacyConsent" id="privacyConsent" required>
+                        <label for="privacyConsent">Autorizo o tratamento dos meus dados para análise do processo, conforme a LGPD (Lei Geral de Proteção de Dados).</label>
+                    </div>
+                    <div class="field-error" id="consentError" style="margin-top: 0.25rem;">Você deve autorizar o tratamento de dados para prosseguir.</div>
+                </div>
+
+                <div class="form-nav">
+                    <button type="button" class="btn btn-outline" id="prevBtn" style="display: none;">Voltar</button>
+                    <button type="button" class="btn btn-primary" id="nextBtn">Próximo</button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn" style="display: none;">
+                        Enviar para Análise
+                    </button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <footer class="footer text-center">
+        <div class="container">
+            <p class="text-muted" style="font-size: 0.8rem;">Ambiente seguro e criptografado. Seus dados estão protegidos.</p>
+        </div>
+    </footer>
+
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="scripts/supabase-config.js"></script>
+    <script src="scripts/form.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

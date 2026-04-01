@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise Solicitada | Agile Intermediação</title>
+    <meta name="description" content="Sua solicitação de análise de processo foi recebida com sucesso.">
+    <link rel="stylesheet" href="styles/main.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .success-container {
+            max-width: 600px;
+            margin: var(--spacing-xl) auto;
+            padding: var(--spacing-md);
+            min-height: 60vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .success-card {
+            background: var(--color-surface);
+            border: 1px solid rgba(197, 160, 89, 0.2);
+            border-radius: var(--border-radius-lg);
+            padding: 3rem 2rem;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            animation: fadeInUp 0.8s ease-out;
+        }
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            color: var(--color-gold);
+            animation: scaleIn 0.6s ease-out 0.3s both;
+        }
+        .success-title {
+            color: var(--color-gold);
+            font-size: 1.75rem;
+            margin-bottom: 1rem;
+        }
+        .info-block {
+            background: rgba(197, 160, 89, 0.05);
+            border: 1px solid rgba(197, 160, 89, 0.15);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+        }
+        .info-row:not(:last-child) {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .info-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--color-neutral);
+        }
+        .info-value {
+            font-weight: 600;
+            color: var(--color-gold);
+            font-family: var(--font-heading);
+            font-size: 1.1rem;
+        }
+        .info-value.email-value {
+            color: var(--color-off-white);
+            font-size: 0.95rem;
+        }
+        .timeline-note {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            margin: 1.5rem 0;
+            text-align: left;
+        }
+        .timeline-note i {
+            color: var(--color-gold);
+            flex-shrink: 0;
+        }
+        .timeline-note p {
+            font-size: 0.9rem;
+            color: var(--color-neutral);
+        }
+        .error-state {
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.5); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="container header-content">
+            <div class="logo">
+                <a href="index.html"><span class="text-gold">AGILE</span> INTERMEDIAÇÃO</a>
+            </div>
+            <a href="index.html" class="text-muted">Voltar ao Início</a>
+        </div>
+    </header>
+
+    <main>
+        <div class="success-container">
+            <div id="successContent" class="success-card">
+                <!-- Content populated by JS -->
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer text-center">
+        <div class="container">
+            <p class="text-muted" style="font-size: 0.8rem;">Ambiente seguro e criptografado. Seus dados estão protegidos.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('successContent');
+            const params = new URLSearchParams(window.location.search);
+            const ref = params.get('ref');
+            const email = params.get('email');
+
+            if (ref && email) {
+                container.innerHTML = `
+                    <i data-lucide="check-circle" class="success-icon"></i>
+                    <h2 class="success-title">Análise Solicitada com Sucesso!</h2>
+                    <p class="text-muted">Sua solicitação foi registada com sucesso no nosso sistema. A equipa técnica da Agile já foi notificada.</p>
+
+                    <div class="info-block">
+                        <div class="info-row">
+                            <span class="info-label">Referência</span>
+                            <span class="info-value">${decodeURIComponent(ref)}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">E-mail</span>
+                            <span class="info-value email-value">${decodeURIComponent(email)}</span>
+                        </div>
+                    </div>
+
+                    <div class="timeline-note">
+                        <i data-lucide="clock" style="width: 24px; height: 24px;"></i>
+                        <p>Você receberá um retorno da nossa equipa em até <strong style="color: var(--color-gold);">48 horas</strong> no e-mail informado com a avaliação preliminar do seu processo.</p>
+                    </div>
+
+                    <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 1.5rem;">Guarde a referência <strong>${decodeURIComponent(ref)}</strong> para acompanhar o status da sua solicitação.</p>
+
+                    <a href="index.html" class="btn btn-primary">Voltar ao Início</a>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="error-state">
+                        <i data-lucide="alert-circle" style="width: 64px; height: 64px; color: #ff4d4d; margin: 0 auto 1.5rem; display: block;"></i>
+                        <h2>Dados Não Encontrados</h2>
+                        <p class="text-muted mt-1">Não foi possível carregar os dados da submissão. Por favor, tente novamente.</p>
+                        <a href="form.html" class="btn btn-primary mt-2">Voltar ao Formulário</a>
+                    </div>
+                `;
+            }
+
+            // Inicializar ícones Lucide
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>
