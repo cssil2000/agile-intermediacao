@@ -1,8 +1,7 @@
-'use client';
-
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 import { 
   LayoutDashboard, 
   Briefcase, 
@@ -12,7 +11,8 @@ import {
   LogOut,
   Maximize2,
   CheckCircle,
-  Clock
+  Clock,
+  Loader2
 } from 'lucide-react';
 
 const SidebarItem = ({ href, icon: Icon, label, active }: { href: string; icon: any; label: string; active: boolean }) => (
@@ -26,6 +26,76 @@ const SidebarItem = ({ href, icon: Icon, label, active }: { href: string; icon: 
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [session, setSession] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // 1. Initial check
+    checkUser();
+
+    // 2. Listen for changes (login/logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (!session && pathname !== '/admin/login') {
+        router.push('/admin/login');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [pathname, router]);
+
+  async function checkUser() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      setSession(session);
+      
+      if (!session && pathname !== '/admin/login') {
+        router.push('/admin/login');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/admin/login');
+  };
+
+  // Skip layout for login page
+  if (pathname === '/admin/login') {
+    return <>{children}</>;
+  }
+
+  if (loading) {
+    return (
+      <div className="loading-screen">
+        <Loader2 className="animate-spin" size={48} color="#c2a15f" />
+        <p>Verificando acesso...</p>
+        <style jsx>{`
+          .loading-screen {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #001F26;
+            color: #8d9596;
+            gap: 1rem;
+          }
+          .animate-spin { animation: spin 1s linear infinite; }
+          @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        `}</style>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return null; // Will redirect via useEffect
+  }
 
   return (
     <div className="admin-container">
@@ -69,7 +139,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             label="Configurações" 
             active={pathname === '/admin/configuracoes'} 
           />
-          <div className="sidebar-item logout">
+          <div className="sidebar-item logout" onClick={handleLogout}>
             <LogOut size={20} />
             <span>Sair</span>
           </div>

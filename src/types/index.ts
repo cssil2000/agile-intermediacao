@@ -7,7 +7,7 @@ export type LeadType = 'advogado' | 'reclamante' | 'outro';
 export interface Lead {
   id: string;
   created_at: string;
-  name: string;
+  full_name: string;
   email: string;
   phone: string;
   lead_type: LeadType;

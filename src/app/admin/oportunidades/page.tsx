@@ -59,7 +59,7 @@ export default function OportunidadesPage() {
       const matchesSearch = 
         c.process_number?.toLowerCase().includes(search.toLowerCase()) ||
         c.precatorio_number?.toLowerCase().includes(search.toLowerCase()) ||
-        c.lead?.name?.toLowerCase().includes(search.toLowerCase()) ||
+        c.lead?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
         c.internal_reference?.toLowerCase().includes(search.toLowerCase());
       
       const matchesAsset = filters.asset_type === 'all' || c.asset_type === filters.asset_type;
@@ -177,7 +177,7 @@ export default function OportunidadesPage() {
                 <td className="ref-cell">{item.internal_reference}</td>
                 <td>
                   <div className="lead-cell">
-                    <strong>{item.lead?.name}</strong>
+                    <strong>{item.lead?.full_name}</strong>
                     <span>{item.lead?.email}</span>
                   </div>
                 </td>

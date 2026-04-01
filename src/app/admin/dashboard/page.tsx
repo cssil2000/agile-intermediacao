@@ -186,39 +186,41 @@ export default function DashboardPage() {
                 <tr><td colSpan={6} style={{ textAlign: 'center' }}>Carregando dados...</td></tr>
               ) : recentCases.length === 0 ? (
                 <tr><td colSpan={6} style={{ textAlign: 'center' }}>Nenhuma oportunidade encontrada.</td></tr>
-              ) : recentCases.map((item) => (
-                <tr key={item.id}>
-                  <td>
-                    <div className="lead-cell">
-                      <strong>{item.lead?.name || 'N/A'}</strong>
-                      <span>{item.lead?.lead_type}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <span className={`asset-tag type-${item.asset_type}`}>
-                      {item.asset_type === 'trabalhista' ? 'Trabalhista' : 'Precatório'}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="process-cell">
-                      <span>{item.process_number || item.precatorio_number || 'Sem número'}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <span className={`badge badge-status-${item.case_status}`}>
-                      {item.case_status}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`priority-tag ${item.priority}`}>
-                      {item.priority}
-                    </span>
-                  </td>
-                  <td>
-                    <Link href={`/admin/oportunidades/${item.id}`} className="btn-small">Abrir</Link>
-                  </td>
-                </tr>
-              ))}
+              ) : (
+                recentCases.map((item) => (
+                  <tr key={item.id}>
+                    <td>
+                      <div className="lead-cell">
+                        <strong>{item.lead?.full_name || 'N/A'}</strong>
+                        <span>{item.lead?.lead_type}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`asset-tag type-${item.asset_type}`}>
+                        {item.asset_type === 'trabalhista' ? 'Trabalhista' : 'Precatório'}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="process-cell">
+                        <span>{item.process_number || item.precatorio_number || 'Sem número'}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`badge badge-status-${item.case_status}`}>
+                        {item.case_status.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`priority-tag ${item.priority}`}>
+                        {item.priority}
+                      </span>
+                    </td>
+                    <td>
+                      <Link href={`/admin/oportunidades/${item.id}`} className="btn-small">Abrir</Link>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -256,11 +258,11 @@ export default function DashboardPage() {
             <h4>Alertas de Hoje</h4>
             <div className="alert-item">
               <Zap size={16} color="#c2a15f" />
-              <span>3 Oportunidades Premium pendentes</span>
+              <span>{stats.totalLeads} Total de registros</span>
             </div>
             <div className="alert-item">
               <Scale size={16} color="#f59e0b" />
-              <span>5 Revisões humanas aguardando</span>
+              <span>{stats.humanReview} Revisões humanas aguardando</span>
             </div>
           </div>
         </div>
