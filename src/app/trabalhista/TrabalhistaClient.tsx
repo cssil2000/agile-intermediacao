@@ -7,7 +7,6 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { 
   ArrowRight, 
-  ArrowLeft, 
   Check, 
   Loader2, 
   User, 
@@ -23,8 +22,6 @@ import {
   FileSearch,
   Users
 } from 'lucide-react';
-
-type Step = 1 | 2 | 3 | 4;
 
 // Utility functions for masking
 const maskProcessNumber = (value: string) => {
@@ -45,10 +42,10 @@ const maskPhone = (value: string) => {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
 };
 
-function TrabalhistaForm() {
+export default function TrabalhistaClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [step, setStep] = useState<Step>(1);
+  const formRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,26 +60,24 @@ function TrabalhistaForm() {
     notes: '',
     email: '',
     phone: '',
-    privacy_consent: false
+    privacy_consent: true // Automatically agreed or required via disclaimer
   });
 
   const updateField = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const nextStep = () => setStep(prev => (prev + 1) as Step);
-  const prevStep = () => setStep(prev => (prev - 1) as Step);
+  const scrollToForm = () => {
+    formRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
-  const handleSubmit = async () => {
-    if (!formData.privacy_consent) {
-      setError('Você precisa aceitar os termos de privacidade.');
-      return;
-    }
-
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
+      // 1. Create Lead
       const { data: leadData, error: leadError } = await supabase
         .from('leads')
         .insert({
@@ -95,7 +90,7 @@ function TrabalhistaForm() {
           utm_source: searchParams.get('utm_source') || null,
           utm_medium: searchParams.get('utm_medium') || null,
           utm_campaign: searchParams.get('utm_campaign') || null,
-          privacy_consent: formData.privacy_consent,
+          privacy_consent: true,
           privacy_consent_at: new Date().toISOString(),
           notes: formData.notes
         })
@@ -104,6 +99,7 @@ function TrabalhistaForm() {
 
       if (leadError) throw leadError;
 
+      // 2. Create Case
        const { data: caseData, error: caseError } = await supabase
          .from('cases')
          .insert({
@@ -111,7 +107,7 @@ function TrabalhistaForm() {
            asset_type: 'trabalhista',
            process_number: formData.process_number,
            tribunal: formData.tribunal,
-           defendant_company: formData.defendant_company,
+           defendant_company: formData.defendant_company || 'Não informada',
            estimated_value: formData.estimated_value ? parseFloat(formData.estimated_value) : null,
            process_stage: formData.process_stage,
            case_status: 'recebido',
@@ -122,6 +118,7 @@ function TrabalhistaForm() {
 
        if (caseError) throw caseError;
 
+       // 3. Activity Log
        await supabase.from('activity_logs').insert({
          case_id: caseData.id,
          lead_id: leadData.id,
@@ -134,235 +131,10 @@ function TrabalhistaForm() {
 
     } catch (err: any) {
       console.error(err);
-      setError('Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente.');
+      setError('Erro ao enviar dados. Verifique os campos e tente novamente.');
     } finally {
       setLoading(false);
     }
-  };
-
-  return (
-    <div className="form-container">
-      <div className="progress-bar">
-        {[1, 2, 3, 4].map(s => (
-          <div key={s} className={`progress-step ${step >= s ? 'active' : ''} ${step > s ? 'completed' : ''}`}>
-            <div className="step-dot">{step > s ? <Check size={14} /> : s}</div>
-            <span>{s === 1 ? 'Perfil' : s === 2 ? 'Processo' : s === 3 ? 'Detalhes' : 'Contato'}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="form-card">
-        {step === 1 && (
-          <div className="step-content">
-            <div className="step-header">
-              <User size={24} className="gold" />
-              <h2>Análise de Crédito Trabalhista</h2>
-              <p>Inicie sua jornada para a liquidez. Quem está solicitando?</p>
-            </div>
-            
-            <div className="form-group grid-2-mob">
-              <button 
-                className={`nav-card ${formData.lead_type === 'reclamante' ? 'active' : ''}`}
-                onClick={() => updateField('lead_type', 'reclamante')}
-              >
-                <User size={20} />
-                <span>Reclamante (Trabalhador)</span>
-              </button>
-              <button 
-                className={`nav-card ${formData.lead_type === 'advogado' ? 'active' : ''}`}
-                onClick={() => updateField('lead_type', 'advogado')}
-              >
-                <Scale size={20} />
-                <span>Advogado da Causa</span>
-              </button>
-            </div>
-
-            <div className="form-group mt-2">
-              <label>Nome Completo</label>
-              <input 
-                type="text" 
-                placeholder="Seu nome ou nome da sua banca" 
-                value={formData.full_name}
-                onChange={(e) => updateField('full_name', e.target.value)}
-              />
-            </div>
-
-            <div className="form-actions">
-              <button 
-                className="btn btn-primary btn-full" 
-                disabled={!formData.full_name}
-                onClick={nextStep}
-              >
-                Próximo Passo <ArrowRight size={18} />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="step-content">
-            <div className="step-header">
-              <Gavel size={24} className="gold" />
-              <h2>Dados do Processo</h2>
-              <p>Precisamos desses dados para localizar e avaliar o crédito.</p>
-            </div>
-
-            <div className="form-grid">
-              <div className="form-group">
-                <label>Número do Processo (CNJ)</label>
-                <input 
-                  type="text" 
-                  placeholder="0000000-00.0000.0.00.0000" 
-                  value={formData.process_number}
-                  onChange={(e) => updateField('process_number', maskProcessNumber(e.target.value))}
-                />
-              </div>
-              <div className="form-group">
-                <label>Tribunal (TRT)</label>
-                <input 
-                  type="text" 
-                  placeholder="Ex: TRT2, TRT15..." 
-                  value={formData.tribunal}
-                  onChange={(e) => updateField('tribunal', e.target.value)}
-                />
-              </div>
-              <div className="form-group">
-                <label>Empresa Reclamada (Empresa)</label>
-                <input 
-                  type="text" 
-                  placeholder="Ex: Banco X, Empresa Y..." 
-                  value={formData.defendant_company}
-                  onChange={(e) => updateField('defendant_company', e.target.value)}
-                />
-              </div>
-              <div className="form-group">
-                <label>Valor Estimado do Crédito</label>
-                <div className="input-prefix">
-                   <span>R$</span>
-                   <input 
-                    type="number" 
-                    placeholder="0.00" 
-                    value={formData.estimated_value}
-                    onChange={(e) => updateField('estimated_value', e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="form-actions space-between">
-              <button className="btn btn-outline" onClick={prevStep}>Voltar</button>
-              <button 
-                className="btn btn-primary" 
-                disabled={!formData.process_number || !formData.defendant_company}
-                onClick={nextStep}
-              >
-                Próximo Passo <ArrowRight size={18} />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="step-content">
-            <div className="step-header">
-              <Briefcase size={24} className="gold" />
-              <h2>Fase Processual</h2>
-              <p>Informe o estágio atual para uma análise mais precisa.</p>
-            </div>
-
-            <div className="form-group">
-              <label>Situação Atual</label>
-              <select value={formData.process_stage} onChange={(e) => updateField('process_stage', e.target.value)}>
-                <option value="">Selecione...</option>
-                <option value="conhecimento">Fase de Conhecimento</option>
-                <option value="sentenca">Aguardando Sentença</option>
-                <option value="recurso">Em Grau de Recurso</option>
-                <option value="execucao">Fase de Execução (Cálculos)</option>
-                <option value="acordo">Acordo Homologado</option>
-              </select>
-            </div>
-
-            <div className="form-group mt-2">
-               <label>Observações Adicionais</label>
-               <textarea 
-                rows={4} 
-                placeholder="Descreva detalhes que podem ajudar na análise (ex: solvência da empresa, expectativa de prazo)." 
-                value={formData.notes}
-                onChange={(e) => updateField('notes', e.target.value)}
-               />
-            </div>
-
-            <div className="form-actions space-between">
-              <button className="btn btn-outline" onClick={prevStep}>Voltar</button>
-              <button className="btn btn-primary" onClick={nextStep}>Próximo Passo <ArrowRight size={18} /></button>
-            </div>
-          </div>
-        )}
-
-        {step === 4 && (
-          <div className="step-content">
-            <div className="step-header">
-              <ShieldCheck size={24} className="gold" />
-              <h2>Finalizar Solicitação</h2>
-              <p>Complete seus dados para receber o retorno da nossa equipe.</p>
-            </div>
-
-            <div className="form-group">
-              <label>Seu Email</label>
-              <input 
-                type="email" 
-                placeholder="email@exemplo.com" 
-                value={formData.email}
-                onChange={(e) => updateField('email', e.target.value)}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>WhatsApp / Celular</label>
-              <input 
-                type="tel" 
-                placeholder="(00) 00000-0000" 
-                value={formData.phone}
-                onChange={(e) => updateField('phone', maskPhone(e.target.value))}
-              />
-            </div>
-
-            <div className="consent-area mt-2">
-               <label className="checkbox-container">
-                  <input 
-                    type="checkbox" 
-                    checked={formData.privacy_consent}
-                    onChange={(e) => updateField('privacy_consent', e.target.checked)}
-                  />
-                  <span className="checkmark"></span>
-                  <span className="consent-text">Confirmo que os dados informados são verdadeiros e autorizo o processamento conforme a LGPD.</span>
-               </label>
-            </div>
-
-            {error && <div className="error-msg">{error}</div>}
-
-            <div className="form-actions space-between">
-              <button className="btn btn-outline" onClick={prevStep} disabled={loading}>Voltar</button>
-              <button 
-                className="btn btn-primary" 
-                onClick={handleSubmit}
-                disabled={loading || !formData.email || !formData.phone || !formData.privacy_consent}
-              >
-                {loading ? <><Loader2 className="animate-spin" size={18} /> Enviando...</> : <>Solicitar Análise Gratuita <ArrowRight size={18} /></>}
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export default function TrabalhistaClient() {
-  const formRef = useRef<HTMLDivElement>(null);
-
-  const scrollToForm = () => {
-    formRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
@@ -558,20 +330,151 @@ export default function TrabalhistaClient() {
           </div>
         </section>
 
-        {/* FORM SECTION (FINAL CTA INTEGRATED) */}
+        {/* FORM SECTION (NEW SINGLE-PAGE STRUCTURE) */}
         <section id="form-section" ref={formRef} className="section bg-petrol">
-          <div className="container container-narrow">
+          <div className="container container-medium">
             <div className="section-header reveal">
-              <h2 className="section-title">Pronto para analisar o seu crédito trabalhista?</h2>
-              <p className="section-description">Envie as informações do seu processo e receba uma avaliação técnica estruturada da Agile.</p>
+              <h2 className="section-title">Formulário de Solicitação</h2>
+              <p className="section-description">Preencha os campos abaixo para submeter seu ativo judicial.</p>
             </div>
 
-            <Suspense fallback={<div className="status-container"><Loader2 className="animate-spin gold" size={48} /> <p>Carregando formulário...</p></div>}>
-              <TrabalhistaForm />
-            </Suspense>
+            <div className="form-wrapper reveal">
+              <form onSubmit={handleSubmit} className="premium-form">
+                
+                {/* 01 PERFIL */}
+                <div className="form-section">
+                   <div className="section-badge-header">
+                      <span className="number-badge">01</span>
+                      <h3>PERFIL DO SOLICITANTE</h3>
+                   </div>
+                   <div className="form-row">
+                      <div className="form-field">
+                         <label>NOME COMPLETO</label>
+                         <input 
+                            type="text" 
+                            placeholder="Digite seu nome" 
+                            required 
+                            value={formData.full_name}
+                            onChange={(e) => updateField('full_name', e.target.value)}
+                         />
+                      </div>
+                      <div className="form-field">
+                         <label>TIPO DE RELACIONAMENTO</label>
+                         <select 
+                            value={formData.lead_type}
+                            onChange={(e) => updateField('lead_type', e.target.value)}
+                         >
+                            <option value="reclamante">Reclamante</option>
+                            <option value="advogado">Advogado</option>
+                            <option value="parceiro">Parceiro</option>
+                         </select>
+                      </div>
+                   </div>
+                </div>
 
-            <div className="form-footer reveal">
-              <p>Resposta em até 48 horas, com triagem técnica e foco em oportunidades de maior atratividade.</p>
+                {/* 02 DADOS DO PROCESSO */}
+                <div className="form-section">
+                   <div className="section-badge-header">
+                      <span className="number-badge">02</span>
+                      <h3>DADOS DO PROCESSO</h3>
+                   </div>
+                   <div className="form-row">
+                      <div className="form-field">
+                         <label>NÚMERO DO PROCESSO (CNJ)</label>
+                         <input 
+                            type="text" 
+                            placeholder="0000000-00.0000.0.00.0000" 
+                            required
+                            value={formData.process_number}
+                            onChange={(e) => updateField('process_number', maskProcessNumber(e.target.value))}
+                         />
+                      </div>
+                      <div className="form-field">
+                         <label>TRIBUNAL (TRT)</label>
+                         <input 
+                            type="text" 
+                            placeholder="Ex: TRT-2 (SP)" 
+                            required
+                            value={formData.tribunal}
+                            onChange={(e) => updateField('tribunal', e.target.value)}
+                         />
+                      </div>
+                   </div>
+                </div>
+
+                {/* 03 VALORES E DETALHES */}
+                <div className="form-section">
+                   <div className="section-badge-header">
+                      <span className="number-badge">03</span>
+                      <h3>VALORES E DETALHES</h3>
+                   </div>
+                   <div className="form-row">
+                      <div className="form-field">
+                         <label>VALOR ESTIMADO DO CRÉDITO</label>
+                         <input 
+                            type="text" 
+                            placeholder="R$ 0,00" 
+                            value={formData.estimated_value}
+                            onChange={(e) => updateField('estimated_value', e.target.value)}
+                         />
+                      </div>
+                      <div className="form-field">
+                         <label>FASE ATUAL</label>
+                         <select 
+                            value={formData.process_stage}
+                            onChange={(e) => updateField('process_stage', e.target.value)}
+                         >
+                            <option value="">Selecione...</option>
+                            <option value="conhecimento">Conhecimento</option>
+                            <option value="sentenca">Aguardando Sentença</option>
+                            <option value="recurso">Recurso</option>
+                            <option value="execucao">Execução</option>
+                            <option value="acordo">Acordo</option>
+                         </select>
+                      </div>
+                   </div>
+                </div>
+
+                {/* 04 CONTATO */}
+                <div className="form-section">
+                   <div className="section-badge-header">
+                      <span className="number-badge">04</span>
+                      <h3>CONTATO</h3>
+                   </div>
+                   <div className="form-row">
+                      <div className="form-field">
+                         <label>E-MAIL</label>
+                         <input 
+                            type="email" 
+                            placeholder="seu@email.com" 
+                            required
+                            value={formData.email}
+                            onChange={(e) => updateField('email', e.target.value)}
+                         />
+                      </div>
+                      <div className="form-field">
+                         <label>WHATSAPP / TELEFONE</label>
+                         <input 
+                            type="tel" 
+                            placeholder="(00) 00000-0000" 
+                            required
+                            value={formData.phone}
+                            onChange={(e) => updateField('phone', maskPhone(e.target.value))}
+                         />
+                      </div>
+                   </div>
+                </div>
+
+                {error && <div className="error-message">{error}</div>}
+
+                <div className="form-submit">
+                   <button type="submit" className="btn-submit" disabled={loading}>
+                      {loading ? 'ENVIANDO...' : 'ENVIAR PARA ANÁLISE ESTRATÉGICA'}
+                   </button>
+                   <p className="disclaimer">AO ENVIAR, VOCÊ CONCORDA COM NOSSOS TERMOS DE COMPLIANCE E POLÍTICA DE PRIVACIDADE.</p>
+                </div>
+
+              </form>
             </div>
           </div>
         </section>
@@ -579,9 +482,9 @@ export default function TrabalhistaClient() {
 
       <Footer />
 
-      <style jsx>{`
+      <style jsx global>{`
         .landing-page {
-          background: var(--bg-deep);
+          background: #001B22;
           color: #fff;
           overflow-x: hidden;
         }
@@ -592,8 +495,8 @@ export default function TrabalhistaClient() {
           padding: 0 1.5rem;
         }
 
-        .container-narrow {
-          max-width: 800px;
+        .container-medium {
+          max-width: 900px;
         }
 
         .section {
@@ -644,7 +547,7 @@ export default function TrabalhistaClient() {
           height: 100%;
           background: url('/hero-pattern.png');
           background-size: 400px;
-          opacity: 0.15;
+          opacity: 0.1;
           mix-blend-mode: overlay;
         }
 
@@ -724,247 +627,185 @@ export default function TrabalhistaClient() {
           line-height: 1.6;
         }
 
-        /* GRIDS & CARDS */
-        .features-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        /* PREMIUM FORM STYLES */
+        .form-wrapper {
+          background: #111a24;
+          padding: 4rem;
+          border-radius: 4px;
+          box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+          border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .premium-form {
+          display: flex;
+          flex-direction: column;
+          gap: 3.5rem;
+        }
+
+        .form-section {
+          display: flex;
+          flex-direction: column;
           gap: 2rem;
         }
 
-        .feature-card {
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          padding: 3rem 2.5rem;
-          border-radius: 12px;
-          transition: all 0.4s ease;
+        .section-badge-header {
+          display: flex;
+          align-items: center;
+          gap: 1.2rem;
         }
 
-        .feature-card:hover {
-          background: rgba(255, 255, 255, 0.04);
-          border-color: rgba(194, 161, 95, 0.3);
-          transform: translateY(-10px);
-        }
-
-        .feature-icon {
-          width: 50px;
-          height: 50px;
-          background: rgba(194, 161, 95, 0.1);
-          color: var(--color-gold);
+        .number-badge {
+          background: var(--color-gold);
+          color: #000;
+          width: 32px;
+          height: 32px;
           display: flex;
           align-items: center;
           justify-content: center;
-          border-radius: 8px;
-          margin-bottom: 1.5rem;
-        }
-
-        .feature-card h3 {
-          font-family: var(--font-heading);
-          font-size: 1.5rem;
-          margin-bottom: 1rem;
-        }
-
-        .feature-card p {
-          color: var(--text-muted);
-          line-height: 1.6;
-        }
-
-        .criteria-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-          gap: 1.5rem;
-        }
-
-        .criteria-item {
-          display: flex;
-          gap: 1.2rem;
-          padding: 1.5rem;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .criteria-item h4 {
-          font-size: 1.1rem;
-          margin-bottom: 0.4rem;
-          color: #fff;
-        }
-
-        .criteria-item p {
-          font-size: 0.9rem;
-          color: var(--text-muted);
-          line-height: 1.5;
-        }
-
-        .analysis-support {
-          margin-top: 4rem;
-          padding: 2rem;
-          border-left: 3px solid var(--color-gold);
-          background: rgba(194, 161, 95, 0.05);
-          text-align: left;
-          max-width: 700px;
-        }
-
-        /* STEPS */
-        .steps-container {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-          gap: 3rem;
-        }
-
-        .step-block {
-          position: relative;
-        }
-
-        .step-num {
-          font-size: 4rem;
           font-weight: 800;
-          color: rgba(194, 161, 95, 0.1);
-          margin-bottom: -2rem;
-          font-family: var(--font-heading);
+          font-size: 0.9rem;
+          border-radius: 2px;
         }
 
-        .step-content-block h4 {
-          font-family: var(--font-heading);
-          font-size: 1.4rem;
-          margin-bottom: 1rem;
+        .section-badge-header h3 {
+          font-size: 1rem;
+          letter-spacing: 1.5px;
+          font-weight: 700;
           color: var(--color-gold);
-          position: relative;
-          z-index: 1;
         }
 
-        .step-content-block p {
-          color: var(--text-muted);
-          line-height: 1.6;
-          position: relative;
-          z-index: 1;
-        }
-
-        /* SECURITY */
-        .security-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 2rem;
-        }
-
-        .security-card {
-          padding: 3rem;
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          border-radius: 12px;
-          text-align: center;
-        }
-
-        .security-card h3 {
-          font-family: var(--font-heading);
-          font-size: 1.5rem;
-          margin: 1.5rem 0 1rem;
-        }
-
-        .security-card p {
-          color: var(--text-muted);
-          line-height: 1.6;
-        }
-
-        /* BENEFITS */
-        .benefits-grid {
+        .form-row {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 2rem;
         }
 
-        .benefit-item {
+        .form-field {
           display: flex;
+          flex-direction: column;
+          gap: 0.8rem;
+        }
+
+        .form-field label {
+          font-size: 0.7rem;
+          font-weight: 700;
+          letter-spacing: 1px;
+          color: var(--text-muted);
+          text-transform: uppercase;
+        }
+
+        .form-field input, .form-field select {
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          padding: 1rem 1.2rem;
+          color: #fff;
+          font-size: 0.95rem;
+          border-radius: 4px;
+          transition: all 0.3s ease;
+        }
+
+        .form-field input:focus, .form-field select:focus {
+          border-color: var(--color-gold);
+          background: rgba(255, 255, 255, 0.08);
+          outline: none;
+        }
+
+        .form-submit {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
           gap: 1.5rem;
-          background: rgba(194, 161, 95, 0.05);
-          padding: 2rem;
-          border-radius: 8px;
-          border: 1px solid rgba(194, 161, 95, 0.1);
+          margin-top: 1rem;
         }
 
-        .benefit-check {
-          color: var(--color-gold);
-          flex-shrink: 0;
+        .btn-submit {
+          width: 100%;
+          background: var(--color-gold);
+          color: #000;
+          padding: 1.5rem;
+          font-weight: 800;
+          font-size: 1rem;
+          letter-spacing: 1.5px;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: all 0.3s ease;
         }
 
-        .benefit-item h4 {
-          font-family: var(--font-heading);
-          font-size: 1.25rem;
-          margin-bottom: 0.5rem;
+        .btn-submit:hover {
+          background: #d4b47a;
+          transform: translateY(-3px);
+          box-shadow: 0 10px 30px rgba(194, 161, 95, 0.3);
         }
 
-        .benefit-item p {
+        .btn-submit:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+
+        .disclaimer {
+          font-size: 0.7rem;
           color: var(--text-muted);
-          font-size: 0.95rem;
-        }
-
-        /* FORM BLOCK */
-        .form-footer {
-          margin-top: 3rem;
+          letter-spacing: 1px;
           text-align: center;
-          font-size: 0.95rem;
-          color: var(--text-muted);
-          font-style: italic;
         }
 
-        /* --- FORM LOGIC STYLES (MATCHED TO LANDING) --- */
-        .form-container { display: flex; flex-direction: column; gap: 2rem; }
-        .progress-bar { display: flex; justify-content: space-between; padding: 0 1rem; }
-        .progress-step { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; position: relative; }
-        .progress-step span { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
-        .step-dot { width: 32px; height: 32px; border-radius: 50%; background: #121d26; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--text-muted); transition: all 0.3s ease; }
-        .progress-step.active .step-dot { border-color: var(--color-gold); color: #fff; box-shadow: 0 0 15px rgba(194, 161, 95, 0.3); }
-        .progress-step.completed .step-dot { background: var(--color-gold); border-color: var(--color-gold); color: #000; }
+        .error-message {
+          color: var(--error);
+          text-align: center;
+          font-size: 0.9rem;
+          background: rgba(255, 87, 87, 0.1);
+          padding: 1rem;
+          border-radius: 4px;
+        }
 
-        .form-card { background: #121d26; padding: 3rem; border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4); }
-        .step-header { text-align: center; margin-bottom: 2.5rem; }
-        .step-header h2 { font-family: var(--font-heading); font-size: 1.8rem; margin: 1rem 0 0.5rem; }
-        .step-header p { color: var(--text-muted); font-size: 0.95rem; }
+        /* OTHER SECTION STYLES */
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
+        .feature-card { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); padding: 3rem 2.5rem; border-radius: 4px; transition: all 0.4s ease; }
+        .feature-card:hover { transform: translateY(-10px); border-color: rgba(194, 161, 95, 0.3); }
+        .feature-icon { width: 50px; height: 50px; background: rgba(194, 161, 95, 0.1); color: var(--color-gold); display: flex; align-items: center; justify-content: center; border-radius: 4px; margin-bottom: 1.5rem; }
+        .feature-card h3 { font-family: var(--font-heading); font-size: 1.5rem; margin-bottom: 1rem; }
+        .feature-card p { color: var(--text-muted); line-height: 1.6; }
 
-        .nav-card { background: rgba(255, 255, 255, 0.03); border: 2px solid transparent; border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.8rem; cursor: pointer; transition: all 0.3s ease; width: 100%; color: #fff; font-weight: 600; }
-        .nav-card.active { border-color: var(--color-gold); background: rgba(194, 161, 95, 0.05); color: var(--color-gold); }
+        .criteria-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem; }
+        .criteria-item { display: flex; gap: 1.2rem; padding: 1.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        .criteria-item h4 { font-size: 1.1rem; margin-bottom: 0.4rem; }
+        .criteria-item p { font-size: 0.9rem; color: var(--text-muted); }
+        .analysis-support { margin-top: 4rem; padding: 2rem; border-left: 3px solid var(--color-gold); background: rgba(194, 161, 95, 0.05); }
 
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-        .form-group { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1.2rem; text-align: left; }
-        label { font-size: 0.85rem; font-weight: 600; color: #fff; }
-        input, select, textarea { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 8px; padding: 0.8rem 1rem; color: #fff; font-size: 0.95rem; font-family: inherit; }
-        input:focus { border-color: var(--color-gold); outline: none; }
+        .steps-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 3rem; }
+        .step-block { position: relative; }
+        .step-num { font-size: 4rem; font-weight: 800; color: rgba(194, 161, 95, 0.1); margin-bottom: -2rem; font-family: var(--font-heading); }
+        .step-content-block h4 { font-family: var(--font-heading); color: var(--color-gold); margin-bottom: 1rem; }
+        .step-content-block p { color: var(--text-muted); line-height: 1.6; }
+
+        .security-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
+        .security-card { padding: 3rem; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 4px; text-align: center; }
+        .security-card h3 { font-family: var(--font-heading); margin: 1.5rem 0 1rem; }
         
-        .input-prefix { display: flex; align-items: center; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-        .input-prefix span { padding: 0 1rem; background: rgba(255, 255, 255, 0.05); border-right: 1px solid var(--border); color: var(--text-muted); }
-        .input-prefix input { border: none; width: 100%; }
+        .benefits-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+        .benefit-item { display: flex; gap: 1.5rem; background: rgba(194, 161, 95, 0.05); padding: 2rem; border-radius: 4px; border: 1px solid rgba(194, 161, 95, 0.1); }
+        .benefit-check { color: var(--color-gold); }
 
-        .form-actions { margin-top: 2.5rem; display: flex; gap: 1rem; }
-        .form-actions.space-between { justify-content: space-between; }
-        
         /* BUTTONS */
-        .btn { padding: 0.8rem 1.8rem; border-radius: 8px; font-weight: 700; display: inline-flex; align-items: center; gap: 0.8rem; cursor: pointer; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: none; font-size: 0.95rem; }
+        .btn { padding: 0.8rem 1.8rem; border-radius: 4px; font-weight: 700; display: inline-flex; align-items: center; gap: 0.8rem; cursor: pointer; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: none; font-size: 0.95rem; }
         .btn-large { padding: 1.2rem 2.5rem; font-size: 1rem; }
         .btn-primary { background: var(--color-gold); color: #000; }
         .btn-primary:hover { background: #d4b47a; transform: translateY(-3px); box-shadow: 0 10px 25px rgba(194, 161, 95, 0.3); }
         .btn-outline { background: transparent; border: 1px solid var(--color-gold); color: var(--color-gold); }
         .btn-outline:hover { background: rgba(194, 161, 95, 0.1); transform: translateY(-3px); }
-        .btn-full { width: 100%; justify-content: center; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        .consent-area { display: flex; align-items: flex-start; padding: 1.2rem; background: rgba(255, 255, 255, 0.02); border-radius: 8px; text-align: left; }
-        .checkbox-container { display: flex; gap: 1rem; cursor: pointer; }
-        .consent-text { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
-        .error-msg { color: var(--error); font-size: 0.85rem; margin-top: 1rem; text-align: center; }
-        .gold { color: var(--color-gold); }
-        .grid-2-mob { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-        .animate-spin { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
         @media (max-width: 900px) {
           .benefits-grid { grid-template-columns: 1fr; }
+          .form-wrapper { padding: 2.5rem; }
         }
 
         @media (max-width: 600px) {
           .hero { text-align: center; }
           .hero-content { margin: 0 auto; }
           .hero-actions { flex-direction: column; }
-          .form-grid, .grid-2-mob { grid-template-columns: 1fr; }
-          .form-card { padding: 2rem 1.5rem; }
-          .criteria-grid { grid-template-columns: 1fr; }
-          .steps-container { grid-template-columns: 1fr; }
+          .form-row { grid-template-columns: 1fr; gap: 1.5rem; }
+          .container { padding: 0 1rem; }
           .section { padding: 5rem 0; }
         }
       `}</style>

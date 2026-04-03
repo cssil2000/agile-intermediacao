@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { Suspense } from 'react';
 import TrabalhistaClient from './TrabalhistaClient';
 
 export const metadata: Metadata = {
@@ -12,5 +13,9 @@ export const metadata: Metadata = {
 };
 
 export default function TrabalhistaPage() {
-  return <TrabalhistaClient />;
+  return (
+    <Suspense fallback={<div>Carregando...</div>}>
+      <TrabalhistaClient />
+    </Suspense>
+  );
 }
