@@ -17,7 +17,7 @@ export default function Footer() {
             </Link>
             <p className="brand-description">
               Sua parceira estratégica em inteligência jurídico-financeira. 
-              Análise ágil, transparente e focada na antecipação de ativos de alto valor.
+              Análise ágil, transparente e focada na antecipação de ativos judiciais de maior valor.
             </p>
             <div className="social-links">
               <Link href="#"><Instagram size={20} /></Link>
@@ -64,7 +64,7 @@ export default function Footer() {
         </div>
 
         <div className="footer-bottom">
-          <p>© {currentYear} Agile Intermediação. Todos os direitos reservados.</p>
+          <p>© 2026 Agile Intermediação. Todos os direitos reservados.</p>
         </div>
       </div>
 

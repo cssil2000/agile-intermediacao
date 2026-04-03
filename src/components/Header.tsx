@@ -20,9 +20,10 @@ export default function Header() {
 
   const navLinks = [
     { name: 'Início', href: '/' },
+    { name: 'Crédito Trabalhista', href: '/trabalhista' },
     { name: 'Precatórios', href: '/precatorios' },
-    { name: 'Como Funciona', href: '/#como-funciona' },
-    { name: 'Benefícios', href: '/#beneficios' },
+    { name: 'Como Funciona', href: '#como-funciona' },
+    { name: 'Benefícios', href: '#beneficios' },
   ];
 
   const isAdminPage = pathname?.startsWith('/admin');
