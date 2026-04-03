@@ -710,6 +710,11 @@ export default function TrabalhistaClient() {
           outline: none;
         }
 
+        .form-field select option {
+          background: #111a24;
+          color: #fff;
+        }
+
         .form-submit {
           display: flex;
           flex-direction: column;
