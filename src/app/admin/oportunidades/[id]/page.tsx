@@ -21,7 +21,10 @@ import {
   Tag,
   Hash,
   Loader2,
-  Save
+  Save,
+  Cpu,
+  History,
+  LayoutDashboard
 } from 'lucide-react';
 
 export default function CaseDetailPage() {
@@ -33,8 +36,10 @@ export default function CaseDetailPage() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [status, setStatus] = useState('');
-  const [priority, setPriority] = useState('');
-  const [internalNotes, setInternalNotes] = useState('');
+  const [priority, setPriority] = React.useState('');
+  const [internalNotes, setInternalNotes] = React.useState('');
+  const [activityLogs, setActivityLogs] = React.useState<any[]>([]);
+  const [isAnalyzing, setIsAnalyzing] = React.useState(false);
 
   useEffect(() => {
     fetchCaseDetails();
@@ -43,18 +48,41 @@ export default function CaseDetailPage() {
   async function fetchCaseDetails() {
     setLoading(true);
     try {
-      const { data: caseData, error } = await supabase
+      // Fetch Case, Lead, and Summary
+      const { data: caseData, error: caseError } = await supabase
         .from('cases')
-        .select('*, lead:leads(*)')
+        .select(`
+          *,
+          lead:leads(*)
+        `)
         .eq('id', id)
         .single();
 
-      if (error) throw error;
-      
+      if (caseError) throw caseError;
+
       setData(caseData);
       setStatus(caseData.case_status);
       setPriority(caseData.priority);
-      setInternalNotes(caseData.ai_summary || ''); // Using ai_summary as notes for now, but could be a separate field
+      
+      // Fetch AI Summary if exists
+      const { data: summaryData } = await supabase
+        .from('case_summaries')
+        .select('*')
+        .eq('case_id', id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      setInternalNotes(caseData.ai_summary || summaryData?.executive_summary_full || '');
+
+      // Fetch Activity Logs
+      const { data: logs } = await supabase
+        .from('activity_logs')
+        .select('*')
+        .eq('case_id', id)
+        .order('created_at', { ascending: false });
+      
+      setActivityLogs(logs || []);
     } catch (err) {
       console.error(err);
       // Handle error or redirect
@@ -62,6 +90,27 @@ export default function CaseDetailPage() {
       setLoading(false);
     }
   }
+
+  const handleTriggerAnalysis = async () => {
+    setIsAnalyzing(true);
+    try {
+      const response = await fetch('/api/orchestrator', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ case_id: id })
+      });
+      
+      if (!response.ok) throw new Error('Falha ao iniciar orquestrador');
+      
+      // Refresh details after a delay to show logs
+      setTimeout(() => fetchCaseDetails(), 2000);
+    } catch (error) {
+      console.error(error);
+      alert('Erro ao disparar análise automática.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   async function handleUpdate() {
     setUpdating(true);
@@ -116,10 +165,20 @@ export default function CaseDetailPage() {
           <ArrowLeft size={18} /> Voltar
         </button>
         <div className="action-group">
-          <button className="btn btn-primary" onClick={handleUpdate} disabled={updating}>
-            {updating ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-            Salvar Alterações
-          </button>
+          <div className="header-actions-right" style={{ display: 'flex', gap: '1rem' }}>
+            <button 
+              className="btn btn-outline" 
+              onClick={handleTriggerAnalysis}
+              disabled={isAnalyzing || loading}
+            >
+              <Cpu size={18} />
+              {isAnalyzing ? 'Analisando...' : 'Solicitar Análise AI'}
+            </button>
+            <button className="btn btn-primary" onClick={handleUpdate} disabled={updating}>
+              {updating ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+              Salvar Alterações
+            </button>
+          </div>
         </div>
       </div>
 
@@ -266,14 +325,28 @@ export default function CaseDetailPage() {
           <div className="card audit-card mt-2">
             <h3>Audit Log</h3>
             <div className="audit-timeline">
-              <div className="audit-step">
-                <div className="audit-dot active"></div>
-                <div className="audit-info">
-                  <strong>Formulário Enviado</strong>
-                  <span>{new Date(data.created_at).toLocaleString()}</span>
+              {activityLogs.length > 0 ? (
+                activityLogs.map((log, idx) => (
+                  <div className="audit-step" key={log.id}>
+                    <div className={`audit-dot ${idx === 0 ? 'active' : ''}`}></div>
+                    <div className="audit-info">
+                      <strong>{log.event_type.replace(/_/g, ' ').toUpperCase()}</strong>
+                      <p style={{ fontSize: '0.75rem', color: '#8d9596', margin: '2px 0' }}>
+                        {log.description}
+                      </p>
+                      <span>{new Date(log.created_at).toLocaleString('pt-BR')}</span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="audit-step">
+                  <div className="audit-dot active"></div>
+                  <div className="audit-info">
+                    <strong>Processo Iniciado</strong>
+                    <span>{new Date(data.created_at).toLocaleString('pt-BR')}</span>
+                  </div>
                 </div>
-              </div>
-              {/* Future: Map activity_logs here */}
+              )}
             </div>
           </div>
         </div>
