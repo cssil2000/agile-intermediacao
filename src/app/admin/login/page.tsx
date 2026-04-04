@@ -3,7 +3,8 @@
 import React, { useState, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Lock, Mail, Loader2, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Lock, Mail, Loader2, ArrowRight } from 'lucide-react';
+import Image from 'next/image';
 import { ADMIN_EMAILS } from '@/config/auth';
 
 function LoginContent() {
@@ -56,11 +57,16 @@ function LoginContent() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-header">
-          <div className="logo-badge">
-            <ShieldCheck size={32} />
+          <div className="logo-container">
+            <Image 
+              src="/logo-agile.jpg" 
+              alt="Agile Intermediação" 
+              width={180} 
+              height={60} 
+              className="login-logo"
+            />
           </div>
-          <h1>Agile Admin</h1>
-          <p>Acesse o painel central de intermediação</p>
+          <p>Painel Administrativo Agile</p>
         </div>
 
         <form onSubmit={handleLogin} className="login-form">
@@ -133,17 +139,15 @@ function LoginContent() {
           margin-bottom: 2.5rem;
         }
 
-        .logo-badge {
-          width: 64px;
-          height: 64px;
-          background: var(--color-gold, #c2a15f);
-          color: #000;
-          border-radius: 16px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+        .logo-container {
           margin: 0 auto 1.5rem;
-          box-shadow: 0 10px 20px rgba(194, 161, 95, 0.2);
+          display: flex;
+          justify-content: center;
+        }
+
+        .login-logo {
+          object-fit: contain;
+          filter: brightness(1.2);
         }
 
         h1 {

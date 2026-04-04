@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import Image from 'next/image';
 import { 
   LayoutDashboard, 
   Briefcase, 
@@ -45,7 +46,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           await supabase.auth.signOut();
           router.push('/admin/login?error=unauthorized');
         }
-      } else if (pathname !== '/admin/login') {
+      } else if (!pathname.startsWith('/admin/login')) {
         router.push('/admin/login');
       }
     });
@@ -63,7 +64,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           await supabase.auth.signOut();
           router.push('/admin/login?error=unauthorized');
         }
-      } else if (pathname !== '/admin/login') {
+      } else if (!pathname.startsWith('/admin/login')) {
         router.push('/admin/login');
       }
     } catch (err) {
@@ -114,8 +115,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="admin-container">
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <div className="logo-icon">AG</div>
-          <span>AGILE ADMIN</span>
+          <Image 
+            src="/logo-agile.jpg" 
+            alt="Agile Logo" 
+            width={160} 
+            height={40} 
+            style={{ objectFit: 'contain' }}
+            priority
+          />
         </div>
         
         <nav className="sidebar-nav">
