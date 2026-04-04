@@ -520,13 +520,14 @@ export default function TrabalhistaClient() {
         }
 
         /* HERO */
-        .hero {
-          min-height: 100vh;
-          display: flex;
-          align-items: center;
-          padding-top: 6rem;
-          position: relative;
-          background: linear-gradient(to bottom, #000000 0%, #0d0d0d 100%);
+        .hero { 
+          padding: 10rem 0 6rem; 
+          min-height: 85vh; 
+          display: flex; 
+          align-items: center; 
+          background: linear-gradient(to right, rgba(0, 0, 0, 0.9) 30%, rgba(0, 0, 0, 0.4) 100%), url('/hero-trabalhista.png');
+          background-size: cover;
+          background-position: center;
         }
 
         .hero-bg {
