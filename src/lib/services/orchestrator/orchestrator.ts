@@ -1,6 +1,7 @@
 import { getCaseWithDetails, updateCaseStatus } from '../cases/case-service';
 import { createActivityLog, recordAgentRun, updateAgentRun } from '../logs/log-service';
 import { CoreCaseData, OrchestratorOutput, OrchestratorStatus, PipelineType } from '@/types/agents';
+import { rerunPipelineFrom } from '../agentRuns/rerunService';
 
 /**
  * Ponto de entrada do Orquestrador Central.
@@ -66,7 +67,20 @@ export async function runOrchestrator(caseId: string): Promise<OrchestratorOutpu
     if (runId) {
       await updateAgentRun(runId, {
         outputPayload: finalResponse,
-        status: finalResponse.needs_human_review ? 'success' : 'success' // Always success if we handled it safely
+        status: 'success'
+      });
+    }
+
+    // 8. DISPARO DO PIPELINE DE AGENTES (Background)
+    // Se o orquestrador decidiu que o caso está em análise, iniciamos a série de agentes especializados.
+    if (finalResponse.status === 'em_analise') {
+      // Executamos sem 'await' para não bloquear a resposta da API,
+      // permitindo que o frontend mostre "Em Análise" imediatamente enquanto os agentes trabalham.
+      rerunPipelineFrom(caseId, null, {
+        triggerType: 'automatico',
+        rerunReason: 'Início da análise orquestrada'
+      }).catch(err => {
+        console.error(`[Orchestrator] Falha ao disparar pipeline para ${caseId}:`, err);
       });
     }
 

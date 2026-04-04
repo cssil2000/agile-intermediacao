@@ -60,28 +60,29 @@ export async function rerunSingleAgent(
  */
 export async function rerunPipelineFrom(
   caseId: string, 
-  startAgentName: string, 
-  reason: string, 
-  userEmail: string
+  startAgentName: string | null = null, 
+  metadata: RerunMetadata = { triggerType: 'rerun_pipeline', rerunReason: 'Reexecução manual' }
 ) {
-  const index = AGENT_PIPELINE_ORDER.indexOf(startAgentName);
-  if (index === -1) {
-    throw new Error(`Agente de início não encontrado no pipeline: ${startAgentName}`);
+  let agentsToRun: string[] = [];
+
+  if (startAgentName) {
+    const index = AGENT_PIPELINE_ORDER.indexOf(startAgentName);
+    if (index === -1) {
+      throw new Error(`Agente de início não encontrado no pipeline: ${startAgentName}`);
+    }
+    agentsToRun = AGENT_PIPELINE_ORDER.slice(index);
+  } else {
+    // Se não houver agente de início, começa a partir do primeiro do pipeline (quase sempre legal_extraction para novos casos)
+    // No Agile, omitimos o 'capture_normalization_agent' na execução manual de pipeline se não for explicitado
+    agentsToRun = AGENT_PIPELINE_ORDER.filter(a => a !== 'capture_normalization_agent');
   }
 
-  const agentsToRun = AGENT_PIPELINE_ORDER.slice(index);
-  const metadata: RerunMetadata = {
-    triggerType: 'rerun_pipeline',
-    rerunReason: reason,
-    triggeredByEmail: userEmail
-  };
-
-  console.log(`[RerunService] Iniciando reexecução de PIPELINE a partir de ${startAgentName} para o caso ${caseId}`);
+  console.log(`[RerunService] Iniciando execução de PIPELINE para o caso ${caseId}. Agentes: ${agentsToRun.join(' -> ')}`);
 
   await createActivityLog(
     caseId,
-    'rerun_pipeline_iniciado',
-    `Reexecução de pipeline a partir de [${startAgentName}] iniciada por ${userEmail}. Motivo: ${reason}`,
+    'pipeline_ai_iniciado',
+    `Processamento de IA iniciado. Gatilho: ${metadata.triggerType}. Motivo: ${metadata.rerunReason}`,
     'sistema'
   );
 
@@ -90,13 +91,17 @@ export async function rerunPipelineFrom(
     const agentFn = AGENT_FUNCTIONS[agentName];
     if (agentFn) {
       console.log(`[RerunService] Pipeline: Executando ${agentName}...`);
-      const res = await agentFn(caseId, metadata);
-      results.push({ agentName, success: res.status === 'success' || res.status === 'em_analise' });
-      
-      // Se um agente falhar criticamente, podemos decidir parar ou continuar. 
-      // Para integridade de dados, aqui paramos se houver erro interno.
-      if (res.status === 'error' || res.status === 'erro_interno') {
-        console.error(`[RerunService] Pipeline interrompido por erro no agente ${agentName}`);
+      try {
+        const res = await agentFn(caseId, metadata);
+        results.push({ agentName, success: res.status === 'success' || res.status === 'em_analise' });
+        
+        // Se um agente falhar criticamente, paramos para permitir intervenção.
+        if (res.status === 'error' || res.status === 'erro_interno') {
+          console.error(`[RerunService] Pipeline interrompido por erro no agente ${agentName}`);
+          break;
+        }
+      } catch (err) {
+        console.error(`[RerunService] Falha catastrófica no agente ${agentName}:`, err);
         break;
       }
     }

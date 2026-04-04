@@ -22,6 +22,14 @@ export async function runRiskScoringAgent(caseId: string, rerunMetadata?: RerunM
     triggeredByEmail: rerunMetadata?.triggeredByEmail
   });
 
+  // Log imediato para visibilidade no Audit Log
+  await createActivityLog(
+    caseId, 
+    'risk_scoring_iniciado', 
+    'Agente de Risco: Calculando matriz de viabilidade e prioridade operacional...',
+    'sistema'
+  );
+
   try {
     // 1. Fetch de Dados da BD (Case)
     const { data: caseData, error: caseError } = await getCaseWithDetails(caseId);

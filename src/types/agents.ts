@@ -32,7 +32,7 @@ export interface AgentRunState {
 }
 
 export interface RerunMetadata {
-  triggerType: 'manual' | 'rerun_agente' | 'rerun_pipeline';
+  triggerType: 'automatico' | 'manual' | 'rerun_agente' | 'rerun_pipeline';
   rerunReason?: string;
   triggeredByEmail?: string;
 }

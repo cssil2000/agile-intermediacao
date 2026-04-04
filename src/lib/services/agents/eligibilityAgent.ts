@@ -23,6 +23,14 @@ export async function runEligibilityAgent(caseId: string, rerunMetadata?: RerunM
     triggeredByEmail: rerunMetadata?.triggeredByEmail
   });
 
+  // Log imediato para visibilidade no Audit Log
+  await createActivityLog(
+    caseId, 
+    'elegibilidade_iniciada', 
+    'Agente de Elegibilidade: Validando documentos e aplicando matriz de regras de negócio...',
+    'sistema'
+  );
+
   try {
     // 1. Fetch de Dados Consolidados na BD
     const { data: caseData, error } = await getCaseWithDetails(caseId);

@@ -22,6 +22,14 @@ export async function runExecutiveSummaryAgent(caseId: string, rerunMetadata?: R
     triggeredByEmail: rerunMetadata?.triggeredByEmail
   });
 
+  // Log imediato para visibilidade no Audit Log
+  await createActivityLog(
+    caseId, 
+    'resumo_executivo_iniciado', 
+    'Agente de Resumo: Consolidando extração e scoorings para gerar relatório AI...',
+    'sistema'
+  );
+
   try {
     // 1. DADOS SUPERIORES: CASE
     const { data: caseData, error: caseError } = await getCaseWithDetails(caseId);

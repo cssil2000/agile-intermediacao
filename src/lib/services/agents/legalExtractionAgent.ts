@@ -24,6 +24,14 @@ export async function runLegalExtractionAgent(caseId: string, rerunMetadata?: Re
     triggeredByEmail: rerunMetadata?.triggeredByEmail
   });
 
+  // Log imediato para visibilidade no Audit Log
+  await createActivityLog(
+    caseId, 
+    'extracao_juridica_iniciada', 
+    'Agente de Extração: Iniciando consulta e leitura de documentos...',
+    'sistema'
+  );
+
   try {
     // 2. Fetch Dados Atuais no Supabase (Base Confiável)
     const { data: caseData, error } = await getCaseWithDetails(caseId);
@@ -42,11 +50,33 @@ export async function runLegalExtractionAgent(caseId: string, rerunMetadata?: Re
     if (caseData.asset_type === 'trabalhista' && caseData.process_number) {
       // Limpar o número para a query caso tenha traços/hifens
       const cleanCNJ = caseData.process_number.replace(/[^\d.-]/g, '');
+      
+      await createActivityLog(
+        caseId, 
+        'consulta_escavador_iniciada', 
+        `Consultando informações atualizadas do processo ${cleanCNJ} via Escavador API...`,
+        'sistema'
+      );
+
       const extResp = await queryExternalProcessByCNJ(cleanCNJ, caseId);
       if (extResp.success && extResp.data) {
          // Snapshot devolvido diretamente (ou via cache)
          externalRawData = extResp.data;
          sourceSummary.escavador = true;
+         
+         await createActivityLog(
+           caseId, 
+           'consulta_escavador_concluida', 
+           `Informações do Escavador recuperadas com sucesso para o processo ${cleanCNJ}.`,
+           'sistema'
+         );
+      } else {
+         await createActivityLog(
+           caseId, 
+           'consulta_escavador_falhou', 
+           `Não foi possível recuperar dados do Escavador: ${extResp.error || 'Processo não encontrado ou erro de API'}. Continuando com documentos locais...`,
+           'sistema'
+         );
       }
     }
 
