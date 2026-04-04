@@ -34,10 +34,10 @@ export default function Header() {
         <div className="header-inner">
           <Link href="/" className="logo-container">
             <div className="logo-svg">
-              <svg width="40" height="30" viewBox="0 0 40 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 25L18 5H21L15 25H12Z" fill="white" />
-                <path d="M18 25L24 5H27L21 25H18Z" fill="white" />
-                <path d="M24 25L30 5H33L27 25H24Z" fill="white" />
+              <svg width="48" height="32" viewBox="0 0 48 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M8 28L18 4H22L12 28H8Z" fill="white" />
+                <path d="M18 28L28 4H32L22 28H18Z" fill="white" />
+                <path d="M28 28L31 20H35L32 28H28Z" fill="white" />
               </svg>
             </div>
             <div className="logo-text">
@@ -141,23 +141,24 @@ export default function Header() {
         .logo-text {
           display: flex;
           flex-direction: column;
-          line-height: 1;
+          line-height: 0.9;
+          margin-top: 2px;
         }
 
         .logo-brand {
           font-family: var(--font-sans);
-          font-size: 1.4rem;
+          font-size: 1.8rem;
           font-weight: 800;
           color: #fff;
-          letter-spacing: 1px;
+          letter-spacing: 2px;
         }
 
         .logo-subtitle {
           font-family: var(--font-sans);
-          font-size: 0.6rem;
-          font-weight: 600;
+          font-size: 0.65rem;
+          font-weight: 700;
           color: #fff;
-          letter-spacing: 2px;
+          letter-spacing: 3.5px;
           margin-top: 2px;
         }
 
