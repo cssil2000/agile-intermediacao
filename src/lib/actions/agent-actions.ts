@@ -32,7 +32,11 @@ export async function triggerPipelineRerun(
   userEmail: string
 ) {
   try {
-    const result = await rerunPipelineFrom(caseId, startAgentName, reason, userEmail);
+    const result = await rerunPipelineFrom(caseId, startAgentName, {
+      triggerType: 'rerun_pipeline',
+      rerunReason: reason,
+      triggeredByEmail: userEmail
+    });
     revalidatePath(`/internal/agents/${caseId}`);
     return { success: true, data: result };
   } catch (error: any) {
