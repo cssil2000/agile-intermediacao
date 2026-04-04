@@ -94,6 +94,30 @@ export default function CaseDetailPage() {
   const handleTriggerAnalysis = async () => {
     setIsAnalyzing(true);
     try {
+      // 1. Atualizar status para 'em_analise' via client (aproveita a sessão autenticada do admin)
+      // Isso garante que o RLS permita a atualização que falhava no orquestrador server-side
+      const { error: updateError } = await supabase
+        .from('cases')
+        .update({ 
+          case_status: 'em_analise',
+          priority: priority as any 
+        })
+        .eq('id', id);
+
+      if (updateError) throw updateError;
+
+      // 2. Logar a transição de estado manual
+      await supabase.from('activity_logs').insert({
+        case_id: id,
+        event_type: 'analise_manual_solicitada',
+        description: `Admin solicitou análise AI. Status alterado para 'em_analise'.`,
+        actor_type: 'admin'
+      });
+
+      // 3. Atualizar estados locais para UI imediata
+      setStatus('em_analise');
+
+      // 4. Disparar a orquestração via API (background)
       const response = await fetch('/api/orchestrator', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -103,10 +127,10 @@ export default function CaseDetailPage() {
       if (!response.ok) throw new Error('Falha ao iniciar orquestrador');
       
       // Refresh details after a delay to show logs
-      setTimeout(() => fetchCaseDetails(), 2000);
-    } catch (error) {
+      setTimeout(() => fetchCaseDetails(), 3000);
+    } catch (error: any) {
       console.error(error);
-      alert('Erro ao disparar análise automática.');
+      alert('Erro ao disparar análise automática: ' + error.message);
     } finally {
       setIsAnalyzing(false);
     }
