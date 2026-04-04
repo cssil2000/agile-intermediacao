@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import StyledJsxRegistry from "@/lib/registry";
 
 export const metadata: Metadata = {
   title: {
@@ -42,7 +43,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body>{children}</body>
+      <body>
+        <StyledJsxRegistry>{children}</StyledJsxRegistry>
+      </body>
     </html>
   );
 }
