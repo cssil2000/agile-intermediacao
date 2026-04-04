@@ -42,6 +42,18 @@ const maskPhone = (value: string) => {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
 };
 
+const parseNumeric = (value: string): number | null => {
+  if (!value) return null;
+  // Remove currency, thousands separators (dots in BR), and normalize decimal comma
+  const cleanValue = value
+    .replace(/[R$\s]/g, '')
+    .replace(/\./g, '')
+    .replace(',', '.')
+    .trim();
+  const parsed = parseFloat(cleanValue);
+  return isNaN(parsed) ? null : parsed;
+};
+
 export default function TrabalhistaClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -82,8 +94,8 @@ export default function TrabalhistaClient() {
         .from('leads')
         .insert({
           full_name: formData.full_name,
-          email: formData.email,
-          phone: formData.phone,
+          email: formData.email || null,
+          phone: formData.phone || null,
           lead_type: formData.lead_type as any,
           status: 'novo',
           source_page: '/trabalhista',
@@ -106,10 +118,10 @@ export default function TrabalhistaClient() {
            lead_id: leadData.id,
            asset_type: 'trabalhista',
            process_number: formData.process_number,
-           tribunal: formData.tribunal,
+           tribunal: formData.tribunal || null,
            defendant_company: formData.defendant_company || 'Não informada',
-           estimated_value: formData.estimated_value ? parseFloat(formData.estimated_value) : null,
-           process_stage: formData.process_stage,
+           estimated_value: parseNumeric(formData.estimated_value),
+           process_stage: formData.process_stage || null,
            case_status: 'recebido',
            priority: 'media'
          })
@@ -394,7 +406,6 @@ export default function TrabalhistaClient() {
                          <input 
                             type="text" 
                             placeholder="Ex: TRT-2 (SP)" 
-                            required
                             value={formData.tribunal}
                             onChange={(e) => updateField('tribunal', e.target.value)}
                          />
@@ -447,7 +458,6 @@ export default function TrabalhistaClient() {
                          <input 
                             type="email" 
                             placeholder="seu@email.com" 
-                            required
                             value={formData.email}
                             onChange={(e) => updateField('email', e.target.value)}
                          />
@@ -457,7 +467,6 @@ export default function TrabalhistaClient() {
                          <input 
                             type="tel" 
                             placeholder="(00) 00000-0000" 
-                            required
                             value={formData.phone}
                             onChange={(e) => updateField('phone', maskPhone(e.target.value))}
                          />
