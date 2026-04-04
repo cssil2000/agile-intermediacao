@@ -33,17 +33,11 @@ export default function Header() {
       <div className="container">
         <div className="header-inner">
           <Link href="/" className="logo-container">
-            <div className="logo-svg">
-              <svg width="48" height="32" viewBox="0 0 48 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M8 28L18 4H22L12 28H8Z" fill="white" />
-                <path d="M18 28L28 4H32L22 28H18Z" fill="white" />
-                <path d="M28 28L31 20H35L32 28H28Z" fill="white" />
-              </svg>
-            </div>
-            <div className="logo-text">
-              <span className="logo-brand">AGILE</span>
-              <span className="logo-subtitle">INTERMEDIAÇÃO</span>
-            </div>
+            <img 
+              src="/logo-agile.jpg" 
+              alt="Agile Intermediação" 
+              className="logo-img"
+            />
           </Link>
 
           <nav className="desktop-nav">
@@ -138,28 +132,10 @@ export default function Header() {
           align-items: center;
         }
 
-        .logo-text {
-          display: flex;
-          flex-direction: column;
-          line-height: 0.9;
-          margin-top: 2px;
-        }
-
-        .logo-brand {
-          font-family: var(--font-sans);
-          font-size: 1.8rem;
-          font-weight: 800;
-          color: #fff;
-          letter-spacing: 2px;
-        }
-
-        .logo-subtitle {
-          font-family: var(--font-sans);
-          font-size: 0.65rem;
-          font-weight: 700;
-          color: #fff;
-          letter-spacing: 3.5px;
-          margin-top: 2px;
+        .logo-img {
+          height: 48px;
+          width: auto;
+          display: block;
         }
 
         .desktop-nav {
