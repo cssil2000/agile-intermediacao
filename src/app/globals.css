@@ -3,12 +3,12 @@
 :root {
   --primary: #c2a15f;
   --primary-hover: #a68a51;
-  --background: #001B22; /* Deeper Petrol Blue */
-  --surface: #0a252e;
-  --surface-light: #0d2e3a;
+  --background: #0d0d0d;
+  --surface: #1a1a1a;
+  --surface-light: #262626;
   --text: #ffffff;
-  --text-muted: #94a3b8;
-  --border: rgba(194, 161, 95, 0.2);
+  --text-muted: #a0a0a0;
+  --border: rgba(255, 255, 255, 0.1);
   --success: #10b981;
   --warning: #f59e0b;
   --error: #ef4444;
@@ -16,7 +16,6 @@
 
   /* Added from main.css */
   --color-gold: #c2a15f;
-  --color-navy: #001B22;
   --color-navy-light: #002B36;
   --font-heading: 'Playfair Display', serif;
   --font-sans: 'Outfit', 'Inter', sans-serif;

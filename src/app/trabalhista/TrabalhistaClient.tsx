@@ -484,7 +484,7 @@ export default function TrabalhistaClient() {
 
       <style jsx global>{`
         .landing-page {
-          background: #001B22;
+          background: #0d0d0d;
           color: #fff;
           overflow-x: hidden;
         }
@@ -504,8 +504,8 @@ export default function TrabalhistaClient() {
           position: relative;
         }
 
-        .bg-dark { background: #001114; }
-        .bg-petrol { background: #001B22; }
+        .bg-dark { background: #000000; }
+        .bg-petrol { background: #0d0d0d; }
 
         /* REVEAL ANIMATION */
         .reveal {
@@ -526,7 +526,7 @@ export default function TrabalhistaClient() {
           align-items: center;
           padding-top: 6rem;
           position: relative;
-          background: #001B22;
+          background: linear-gradient(to bottom, #000000 0%, #0d0d0d 100%);
         }
 
         .hero-bg {
@@ -547,7 +547,7 @@ export default function TrabalhistaClient() {
           height: 100%;
           background: url('/hero-pattern.png');
           background-size: 400px;
-          opacity: 0.1;
+          opacity: 0.05;
           mix-blend-mode: overlay;
         }
 
@@ -629,11 +629,11 @@ export default function TrabalhistaClient() {
 
         /* PREMIUM FORM STYLES */
         .form-wrapper {
-          background: #111a24;
+          background: #161616;
           padding: 4rem;
           border-radius: 4px;
           box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
-          border: 1px solid rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .premium-form {

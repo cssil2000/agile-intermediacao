@@ -84,7 +84,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: #001F26;
+            background: #0d0d0d;
             color: #8d9596;
             gap: 1rem;
           }

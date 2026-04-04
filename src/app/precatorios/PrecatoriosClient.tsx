@@ -218,10 +218,10 @@ export default function PrecatoriosClient() {
       <Footer />
 
       <style jsx>{`
-        .precatorios-page { background: #001F26; }
+        .precatorios-page { background: #0d0d0d; }
         .container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
         .container.small { max-width: 800px; }
-        .hero { padding: 10rem 0 6rem; min-height: 80vh; display: flex; align-items: center; background: radial-gradient(circle at top right, rgba(194, 161, 95, 0.08), transparent 40%); }
+        .hero { padding: 10rem 0 6rem; min-height: 80vh; display: flex; align-items: center; background: linear-gradient(to bottom, #000000 0%, #0d0d0d 100%); }
         .hero-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 4rem; align-items: center; }
         .badge { display: inline-block; font-size: 0.7rem; font-weight: 700; letter-spacing: 2px; color: var(--color-gold); padding: 6px 12px; background: rgba(194, 161, 95, 0.1); border-radius: 4px; margin-bottom: 2rem; }
         h1 { font-family: var(--font-heading); font-size: clamp(2.5rem, 5vw, 4rem); line-height: 1.1; margin-bottom: 1.5rem; }
@@ -235,7 +235,7 @@ export default function PrecatoriosClient() {
         .section-title { font-family: var(--font-heading); font-size: 2.5rem; margin: 1rem 0; }
         .divider { width: 80px; height: 4px; background: var(--color-gold); margin: 0 auto; border-radius: 2px; }
         .steps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 2rem; }
-        .step-card { background: #121d26; padding: 3rem 2rem; border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.03); transition: transform 0.3s ease; }
+        .step-card { background: #161616; padding: 3rem 2rem; border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.03); transition: transform 0.3s ease; }
         .step-card:hover { transform: translateY(-5px); border-color: rgba(194, 161, 95, 0.3); }
         .step-icon { width: 56px; height: 56px; background: rgba(194, 161, 95, 0.1); border-radius: 16px; display: flex; align-items: center; justify-content: center; color: var(--color-gold); margin: 0 auto 2rem; }
         .step-card h3 { font-family: var(--font-heading); font-size: 1.3rem; margin-bottom: 1rem; }
@@ -245,15 +245,15 @@ export default function PrecatoriosClient() {
         .item-icon { width: 48px; height: 48px; background: rgba(255, 255, 255, 0.03); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--color-gold); flex-shrink: 0; }
         .eligibility-item h4 { font-size: 1.1rem; margin-bottom: 0.3rem; }
         .eligibility-item p { font-size: 0.9rem; color: var(--text-muted); }
-        .info-box { background: linear-gradient(135deg, #0a1118, #121d26); padding: 4rem; border-radius: 32px; border: 1px solid rgba(194, 161, 95, 0.1); text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: center; }
-        .bg-gold-gradient { background: linear-gradient(135deg, #001F26, #002B36); border-top: 1px solid rgba(194, 161, 95, 0.1); border-bottom: 1px solid rgba(194, 161, 95, 0.1); }
+        .info-box { background: linear-gradient(135deg, #0a0a0a, #161616); padding: 4rem; border-radius: 32px; border: 1px solid rgba(194, 161, 95, 0.1); text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: center; }
+        .bg-gold-gradient { background: linear-gradient(135deg, #161616, #0a0a0a); border-top: 1px solid rgba(255, 255, 255, 0.05); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
         .benefits-banner { padding: 4rem; border-radius: 32px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); }
         .benefits-banner h2 { font-family: var(--font-heading); font-size: 2.2rem; margin-bottom: 3rem; text-align: center; }
         .benefit-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; }
         .b-item { display: flex; align-items: center; gap: 1rem; font-size: 1.1rem; font-weight: 500; }
         .b-item :global(svg) { color: var(--color-gold); }
         .faq-list { margin-top: 3rem; display: flex; flex-direction: column; gap: 1rem; }
-        .faq-item { background: #121d26; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 1.5rem; cursor: pointer; transition: all 0.3s ease; }
+        .faq-item { background: #1a1a1a; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 1.5rem; cursor: pointer; transition: all 0.3s ease; }
         .faq-question { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 1.1rem; }
         .faq-answer { max-height: 0; overflow: hidden; transition: all 0.4s ease; color: var(--text-muted); font-size: 1rem; margin-top: 0; }
         .faq-item.open .faq-answer { max-height: 300px; margin-top: 1.5rem; }

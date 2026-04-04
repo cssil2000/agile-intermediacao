@@ -419,17 +419,17 @@ export default function PrecatorioFormClient() {
       <Footer />
 
       <style jsx>{`
-        .form-page { background: #001F26; min-height: 100vh; }
+        .form-page { background: #0d0d0d; min-height: 100vh; }
         .container-small { max-width: 700px; margin: 0 auto; padding: 8rem 1.5rem 6rem; }
         .status-container { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem; min-height: 40vh; color: var(--text-muted); }
         .form-container { display: flex; flex-direction: column; gap: 2rem; }
         .progress-bar { display: flex; justify-content: space-between; padding: 0 1rem; margin-bottom: 1rem; }
         .progress-step { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; position: relative; z-index: 1; }
         .progress-step span { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
-        .step-dot { width: 32px; height: 32px; border-radius: 50%; background: #121d26; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--text-muted); transition: all 0.3s ease; }
+        .step-dot { width: 32px; height: 32px; border-radius: 50%; background: #161616; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--text-muted); transition: all 0.3s ease; }
         .progress-step.active .step-dot { border-color: var(--color-gold); color: #fff; box-shadow: 0 0 15px rgba(194, 161, 95, 0.3); }
         .progress-step.completed .step-dot { background: var(--color-gold); border-color: var(--color-gold); color: #000; }
-        .form-card { background: #121d26; padding: 3rem; border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4); }
+        .form-card { background: #161616; padding: 3rem; border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4); }
         .step-header { text-align: center; margin-bottom: 2.5rem; }
         .step-header h2 { font-family: var(--font-heading); font-size: 1.8rem; margin: 1rem 0 0.5rem; }
         .step-header p { color: var(--text-muted); font-size: 0.95rem; }

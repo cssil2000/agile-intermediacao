@@ -93,7 +93,7 @@ export default function LoginPage() {
       <style jsx>{`
         .login-page {
           min-height: 100vh;
-          background: #001F26;
+          background: #0d0d0d;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -103,7 +103,7 @@ export default function LoginPage() {
         .login-card {
           width: 100%;
           max-width: 420px;
-          background: #121d26;
+          background: #161616;
           padding: 3rem;
           border-radius: 24px;
           border: 1px solid rgba(255, 255, 255, 0.05);

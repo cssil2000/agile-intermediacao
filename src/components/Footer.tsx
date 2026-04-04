@@ -12,8 +12,18 @@ export default function Footer() {
       <div className="container">
         <div className="footer-grid">
           <div className="footer-brand">
-            <Link href="/" className="logo">
-              <span className="gold">AGILE</span> INTERMEDIAÇÃO
+            <Link href="/" className="logo-container">
+              <div className="logo-svg">
+                <svg width="32" height="24" viewBox="0 0 40 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 25L18 5H21L15 25H12Z" fill="white" />
+                  <path d="M18 25L24 5H27L21 25H18Z" fill="white" />
+                  <path d="M24 25L30 5H33L27 25H24Z" fill="white" />
+                </svg>
+              </div>
+              <div className="logo-text">
+                <span className="logo-brand">AGILE</span>
+                <span className="logo-subtitle">INTERMEDIAÇÃO</span>
+              </div>
             </Link>
             <p className="brand-description">
               Sua parceira estratégica em inteligência jurídico-financeira. 
@@ -70,7 +80,7 @@ export default function Footer() {
 
       <style jsx>{`
         .footer {
-          background: #001F26;
+          background: #0a0a0a;
           padding: 6rem 0 2rem;
           border-top: 1px solid rgba(255, 255, 255, 0.05);
           color: #fff;
@@ -93,17 +103,29 @@ export default function Footer() {
           grid-column: span 1.5;
         }
 
-        .logo {
-          font-family: var(--font-heading);
-          font-size: 1.5rem;
-          font-weight: 700;
-          letter-spacing: 1px;
-          display: block;
+        .logo-container {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          text-decoration: none;
           margin-bottom: 1.5rem;
         }
 
-        .logo .gold {
-          color: var(--color-gold);
+        .logo-brand {
+          font-family: var(--font-sans);
+          font-size: 1.2rem;
+          font-weight: 800;
+          color: #fff;
+          letter-spacing: 1px;
+        }
+
+        .logo-subtitle {
+          font-family: var(--font-sans);
+          font-size: 0.5rem;
+          font-weight: 600;
+          color: #fff;
+          letter-spacing: 2px;
+          margin-top: 2px;
         }
 
         .brand-description {

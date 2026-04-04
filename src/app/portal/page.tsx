@@ -87,7 +87,7 @@ export default function PortalPage() {
       <style jsx>{`
         .portal-container {
           min-height: 100vh;
-          background: #001F26;
+          background: #0d0d0d;
           color: white;
           padding-bottom: 4rem;
           font-family: 'Inter', sans-serif;
@@ -153,8 +153,8 @@ export default function PortalPage() {
           gap: 1.25rem;
         }
         .route-card {
-          background: #121d26;
-          border: 1px solid #233544;
+          background: #161616;
+          border: 1px solid #232323;
           padding: 1.5rem;
           border-radius: 20px;
           display: flex;
@@ -172,7 +172,7 @@ export default function PortalPage() {
           box-shadow: 0 20px 40px rgba(0,0,0,0.3);
         }
         .route-card.featured {
-          background: linear-gradient(135deg, #121d26 0%, #002B36 100%);
+          background: linear-gradient(135deg, #1a1a1a 0%, #111111 100%);
         }
         .route-icon {
           width: 52px;

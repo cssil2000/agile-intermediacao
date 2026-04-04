@@ -102,7 +102,7 @@ export default function SuccessPage() {
 
       <style jsx>{`
         .success-page {
-          background: #001F26;
+          background: #0d0d0d;
           min-height: 100vh;
         }
 
@@ -122,7 +122,7 @@ export default function SuccessPage() {
         }
 
         .success-container {
-          background: #121d26;
+          background: #161616;
           padding: 4rem 3rem;
           border-radius: 32px;
           border: 1px solid rgba(255, 255, 255, 0.05);

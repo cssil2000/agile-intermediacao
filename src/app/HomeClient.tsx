@@ -277,8 +277,7 @@ export default function HomeClient() {
           display: flex;
           align-items: center;
           position: relative;
-          background: radial-gradient(circle at 70% 30%, rgba(194, 161, 95, 0.08), transparent 40%),
-                      radial-gradient(circle at 10% 70%, rgba(13, 46, 58, 0.4), transparent 50%);
+          background: linear-gradient(to bottom, #000000 0%, #111111 100%);
           overflow: hidden;
         }
 
@@ -287,7 +286,7 @@ export default function HomeClient() {
           position: absolute;
           inset: 0;
           background: url('/hero-pattern.png') center/cover no-repeat;
-          opacity: 0.1;
+          opacity: 0.05;
           pointer-events: none;
         }
 
@@ -451,7 +450,7 @@ export default function HomeClient() {
 
         /* SOLUTIONS SECTION */
         .bg-surface-alt {
-          background-color: #0b2229;
+          background-color: #161616;
         }
 
         .solutions-grid {
@@ -478,7 +477,7 @@ export default function HomeClient() {
         }
 
         .solution-card.featured {
-          background: linear-gradient(135deg, #0d2e3a 0%, #0a252e 100%);
+          background: linear-gradient(135deg, #1a1a1a 0%, #111111 100%);
           border-color: rgba(194, 161, 95, 0.4);
         }
 
@@ -607,7 +606,7 @@ export default function HomeClient() {
 
         /* AUTHORITY SECTION */
         .authority-section {
-          background-color: #05161d;
+          background-color: #0a0a0a;
         }
 
         .authority-highlight {
@@ -628,7 +627,7 @@ export default function HomeClient() {
 
         /* FINAL CTA */
         .cta-box {
-          background: linear-gradient(135deg, #0d2e3a 0%, #05161d 100%);
+          background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
           padding: 6rem 3rem;
           border-radius: 4px;
           border: 1px solid var(--border);

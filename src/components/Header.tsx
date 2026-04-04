@@ -32,8 +32,18 @@ export default function Header() {
     <header className={`header ${isScrolled ? 'scrolled' : ''}`}>
       <div className="container">
         <div className="header-inner">
-          <Link href="/" className="logo">
-            <span className="gold">AGILE</span> INTERMEDIAÇÃO
+          <Link href="/" className="logo-container">
+            <div className="logo-svg">
+              <svg width="40" height="30" viewBox="0 0 40 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 25L18 5H21L15 25H12Z" fill="white" />
+                <path d="M18 25L24 5H27L21 25H18Z" fill="white" />
+                <path d="M24 25L30 5H33L27 25H24Z" fill="white" />
+              </svg>
+            </div>
+            <div className="logo-text">
+              <span className="logo-brand">AGILE</span>
+              <span className="logo-subtitle">INTERMEDIAÇÃO</span>
+            </div>
           </Link>
 
           <nav className="desktop-nav">
@@ -97,11 +107,11 @@ export default function Header() {
         }
 
         .header.scrolled {
-          background: rgba(0, 31, 38, 0.9);
+          background: #000000;
           backdrop-filter: blur(10px);
           padding: 1rem 0;
-          border-bottom: 1px solid rgba(194, 161, 95, 0.2);
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
         }
 
         .container {
@@ -116,32 +126,57 @@ export default function Header() {
           align-items: center;
         }
 
-        .logo {
-          font-family: var(--font-heading);
-          font-size: 1.5rem;
-          font-weight: 700;
-          letter-spacing: 1px;
-          color: #fff;
+        .logo-container {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          text-decoration: none;
         }
 
-        .logo .gold {
-          color: var(--color-gold);
+        .logo-svg {
+          display: flex;
+          align-items: center;
+        }
+
+        .logo-text {
+          display: flex;
+          flex-direction: column;
+          line-height: 1;
+        }
+
+        .logo-brand {
+          font-family: var(--font-sans);
+          font-size: 1.4rem;
+          font-weight: 800;
+          color: #fff;
+          letter-spacing: 1px;
+        }
+
+        .logo-subtitle {
+          font-family: var(--font-sans);
+          font-size: 0.6rem;
+          font-weight: 600;
+          color: #fff;
+          letter-spacing: 2px;
+          margin-top: 2px;
         }
 
         .desktop-nav {
           display: flex;
-          gap: 2rem;
+          gap: 2.5rem;
         }
 
         .desktop-nav a {
-          color: var(--text-muted);
-          font-weight: 500;
-          font-size: 0.95rem;
+          color: #a0a0a0;
+          font-weight: 600;
+          font-size: 0.85rem;
+          letter-spacing: 1px;
+          text-transform: uppercase;
           transition: color 0.3s ease;
         }
 
         .desktop-nav a:hover, .desktop-nav a.active {
-          color: var(--color-gold);
+          color: #fff;
         }
 
         .header-actions {
@@ -176,11 +211,11 @@ export default function Header() {
           right: -100%;
           width: 80%;
           height: 100vh;
-          background: #001F26;
+          background: #000000;
           z-index: 999;
           transition: right 0.3s ease;
           padding: 6rem 2rem 2rem;
-          border-left: 1px solid rgba(194, 161, 95, 0.2);
+          border-left: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .mobile-menu.open {
