@@ -16,6 +16,7 @@ import {
   Clock,
   Loader2
 } from 'lucide-react';
+import { ADMIN_EMAILS } from '@/config/auth';
 
 const SidebarItem = ({ href, icon: Icon, label, active }: { href: string; icon: any; label: string; active: boolean }) => (
   <Link href={href}>
@@ -37,9 +38,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     checkUser();
 
     // 2. Listen for changes (login/logout)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
-      if (!session && pathname !== '/admin/login') {
+      if (session) {
+        if (!ADMIN_EMAILS.includes(session.user.email || '')) {
+          await supabase.auth.signOut();
+          router.push('/admin/login?error=unauthorized');
+        }
+      } else if (pathname !== '/admin/login') {
         router.push('/admin/login');
       }
     });
@@ -52,7 +58,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       
-      if (!session && pathname !== '/admin/login') {
+      if (session) {
+        if (!ADMIN_EMAILS.includes(session.user.email || '')) {
+          await supabase.auth.signOut();
+          router.push('/admin/login?error=unauthorized');
+        }
+      } else if (pathname !== '/admin/login') {
         router.push('/admin/login');
       }
     } catch (err) {

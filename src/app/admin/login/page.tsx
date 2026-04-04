@@ -1,16 +1,26 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Lock, Mail, Loader2, ShieldCheck, ArrowRight } from 'lucide-react';
+import { ADMIN_EMAILS } from '@/config/auth';
 
-export default function LoginPage() {
+function LoginContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlError = searchParams.get('error');
+
+  // Check for URL errors (e.g., redirection from layout)
+  React.useEffect(() => {
+    if (urlError === 'unauthorized') {
+      setError('Acesso não autorizado. Use um e-mail de administrador.');
+    }
+  }, [urlError]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,12 +28,20 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const { error: authError } = await supabase.auth.signInWithPassword({
+      const { data: { user }, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-
+      
       if (authError) throw authError;
+
+      // Direct authorization check after login
+      if (user && !ADMIN_EMAILS.includes(user.email || '')) {
+        await supabase.auth.signOut();
+        setError('Este e-mail não possui permissão de administrador.');
+        setLoading(false);
+        return;
+      }
 
       router.push('/admin/dashboard');
     } catch (err: any) {
@@ -239,5 +257,17 @@ export default function LoginPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ background: '#0d0d0d', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Loader2 className="animate-spin" size={48} color="#c2a15f" />
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }
