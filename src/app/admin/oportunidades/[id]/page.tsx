@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState, use } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { 
   ArrowLeft, 
   User, 
@@ -24,13 +24,9 @@ import {
   Save
 } from 'lucide-react';
 
-type ParamProps = {
-  params: Promise<{ id: string }>
-};
-
-export default function CaseDetailPage(props: ParamProps) {
-  const params = use(props.params);
-  const id = params.id;
+export default function CaseDetailPage() {
+  const params = useParams();
+  const id = params?.id as string;
   
   const router = useRouter();
   const [data, setData] = useState<any>(null);
