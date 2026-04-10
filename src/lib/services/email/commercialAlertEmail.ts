@@ -1,7 +1,8 @@
 import { Resend } from 'resend';
 import { CommercialSummaryPayload, CommercialAlertType, CommercialAlertPriority } from '@/types/agents';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Inicialização lazy — não instancia no topo do módulo para não quebrar o build da Vercel
+const getResend = () => new Resend(process.env.RESEND_API_KEY);
 
 const ALERT_RECIPIENTS = [
   'danielle@agileintermediacao.com.br',
@@ -34,7 +35,7 @@ export async function sendCommercialAlertEmail(params: SendAlertEmailParams): Pr
   const html = buildEmailHtml({ ...params, isImmediate });
 
   try {
-    const { error } = await resend.emails.send({
+    const { error } = await getResend().emails.send({
       from: FROM_ADDRESS,
       to: ALERT_RECIPIENTS,
       subject,
