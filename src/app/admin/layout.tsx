@@ -5,17 +5,18 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Image from 'next/image';
-import { 
-  LayoutDashboard, 
-  Briefcase, 
-  Users, 
-  Settings, 
-  Bell, 
+import {
+  LayoutDashboard,
+  Briefcase,
+  Users,
+  Settings,
+  Bell,
   LogOut,
   Maximize2,
   CheckCircle,
   Clock,
-  Loader2
+  Loader2,
+  Search
 } from 'lucide-react';
 import { ADMIN_EMAILS } from '@/config/auth';
 
@@ -144,11 +145,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             label="Revisão Humana" 
             active={pathname === '/admin/revisao'} 
           />
-          <SidebarItem 
-            href="/admin/propostas" 
-            icon={CheckCircle} 
-            label="Propostas" 
-            active={pathname === '/admin/propostas'} 
+          <SidebarItem
+            href="/admin/propostas"
+            icon={CheckCircle}
+            label="Propostas"
+            active={pathname === '/admin/propostas'}
+          />
+          <SidebarItem
+            href="/admin/consulta-juridica"
+            icon={Search}
+            label="Consulta Jurídica"
+            active={pathname === '/admin/consulta-juridica'}
           />
         </nav>
 

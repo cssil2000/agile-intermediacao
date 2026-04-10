@@ -1,80 +1,99 @@
 import { supabase } from '@/lib/supabase';
 import * as escavador from '@/lib/services/external/escavador';
 
+// Janela de cache: re-usa dados do Escavador se a última query bem-sucedida for mais nova que este valor
+const CACHE_WINDOW_MS = 60 * 60 * 1000; // 1 hora
+
 /**
  * Ferramenta interna genérica para consulta por CNJ e persistência.
- * Assenta agora primariamente no motor do Escavador.
+ *
+ * Estratégia "Snapshot First, Update in Background":
+ *  1. Verificar se existe resultado recente no cache (evita request duplicado para o mesmo CNJ).
+ *  2. Buscar snapshot imediato dos dados que o Escavador já possui em cache (rápido, não bloqueia).
+ *  3. Disparar pedido de atualização assíncrona ao Tribunal sem bloquear o agente.
+ *  4. Retornar o snapshot imediatamente. A próxima execução já terá os dados atualizados.
+ *
+ * Isso elimina o loop de polling bloqueante que causava timeout dos agentes.
  */
 export async function queryExternalProcessByCNJ(processNumber: string, caseId?: string) {
   console.log(`[Legal Tool] Iniciando consulta por CNJ (Escavador API): ${processNumber} (Case: ${caseId || 'N/A'})`);
 
-  // 1. Criar registro de consulta pendente (Assíncrona)
-  const { data: queryRecord, error: initError } = await supabase
+  const cleanCNJ = processNumber.replace(/[^\d.-]/g, '');
+
+  // 1. Verificar cache recente na tabela de auditoria
+  const cacheThreshold = new Date(Date.now() - CACHE_WINDOW_MS).toISOString();
+  const { data: recentQuery } = await supabase
+    .from('external_process_queries')
+    .select('*')
+    .eq('query_value', processNumber)
+    .eq('provider_name', 'escavador')
+    .eq('status', 'success')
+    .gte('created_at', cacheThreshold)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (recentQuery?.raw_response) {
+    console.log(`[Legal Tool] Cache hit: usando resultado recente do Escavador para ${cleanCNJ} (${recentQuery.created_at}).`);
+    return {
+      success: true,
+      data: recentQuery.raw_response,
+      from_cache: true,
+      polling_completed: false
+    };
+  }
+
+  // 2. Criar registro de auditoria
+  let queryRecord: any = null;
+  const { data: record, error: initError } = await supabase
     .from('external_process_queries')
     .insert({
       case_id: caseId,
       provider_name: 'escavador',
-      query_type: 'cnj_async',
+      query_type: 'cnj_snapshot',
       query_value: processNumber,
       status: 'pending'
     })
     .select()
     .single();
 
-  if (initError) {
-    console.error('[Legal Tool] Erro ao criar registro de consulta:', initError);
-    return { error: 'Falha na persistência inicial da query.' };
-  }
+  if (!initError) queryRecord = record;
 
-  // 2. Chamar a API Assíncrona do Escavador para forçar uma atualização fresca do tribunal
-  const response = await escavador.requestEscavadorProcessUpdate(processNumber);
+  // 3. Buscar snapshot imediato (dados em cache do Escavador) — não bloqueia
+  const snap = await escavador.getProcessSnapshotByCNJ(processNumber);
 
-  // 3. Atualizar registro com o retorno ou id do callback
-  if (response.success && response.query_id) {
+  // 4. Disparar pedido de atualização ao Tribunal em segundo plano (fire and forget)
+  //    Não aguardamos nem fazemos polling — o resultado chegará na próxima execução do agente.
+  escavador.requestEscavadorProcessUpdate(processNumber).then((updateResp) => {
+    const status = updateResp.success ? 'awaiting_callback' : 'update_request_failed';
+    console.log(`[Legal Tool] Pedido de atualização ao Tribunal para ${cleanCNJ}: ${status}`);
+  }).catch((err) => {
+    console.warn(`[Legal Tool] Erro ao disparar atualização em segundo plano para ${cleanCNJ}:`, err?.message);
+  });
+
+  // 5. Persistir resultado do snapshot para auditoria
+  if (queryRecord) {
     await supabase
       .from('external_process_queries')
       .update({
-        raw_response: response.data,
-        status: 'awaiting_callback',
-        // Injetando o Provider Query ID no record. Um migration futura pode criar a coluna `provider_query_id` oficial
-        // Para já, gravamos o ID retornado dentro do raw_response para o webhook conseguir encontrar.
+        raw_response: snap.data || null,
+        status: snap.success ? 'success' : 'error',
+        error_message: snap.success ? null : (snap.error || 'Snapshot vazio ou com erro')
       })
       .eq('id', queryRecord.id);
-
-    console.log(`[Legal Tool] Pedido assíncrono Escavador gerado (ID do Provider: ${response.query_id}).`);
-    
-    // Opcional para manter fluxo síncrono no momento ou falha de Callback: 
-    // Podemos simultaneamente buscar o último Snapshot do Escavador e devolver esse enquanto esperamos a Assíncrona.
-    const snap = await escavador.getProcessSnapshotByCNJ(processNumber);
-    if (snap.success && snap.data) {
-        return {
-           success: true,
-           is_async_queued: true,
-           provider_query_id: response.query_id,
-           data: snap.data // Retorna os dados em Cache / Snapshot
-        };
-    }
-
-    return {
-       success: true,
-       is_async_queued: true,
-       provider_query_id: response.query_id,
-       data: null 
-    };
-
-  } else {
-    // Falhou em criar pedido Assíncrono
-    await supabase
-      .from('external_process_queries')
-      .update({
-        status: 'error',
-        raw_response: response.raw || null,
-        error_message: response.error
-      })
-      .eq('id', queryRecord.id);
-
-    return response;
   }
+
+  if (!snap.success) {
+    console.warn(`[Legal Tool] Snapshot não encontrado para ${cleanCNJ}: ${snap.error}`);
+    return { success: false, error: snap.error, data: null };
+  }
+
+  return {
+    success: true,
+    data: snap.data,
+    from_cache: false,
+    polling_completed: false
+  };
 }
 
 /**

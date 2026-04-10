@@ -4,6 +4,7 @@ import { createActivityLog, recordAgentRun, updateAgentRun } from '../logs/log-s
 import { CommercialAgentOutput, CommercialNotificationResult, RerunMetadata } from '@/types/agents';
 import { determineCommercialAlertInfo } from '../commercial/alertRules';
 import { buildCommercialSnapshotPayload } from '../commercial/buildCommercialPayload';
+import { sendCommercialAlertEmail } from '../email/commercialAlertEmail';
 
 /**
  * Agente Comercial e Notificações
@@ -124,6 +125,20 @@ export async function runCommercialNotificationAgent(caseId: string, rerunMetada
         if (alertDbError) {
              console.error('[Commercial] Erro a compilar novo alerta em BD:', alertDbError);
              finalOutput.warnings.push('Falha na inserção tabela commercial_alerts');
+        }
+
+        // Enviar email via Resend
+        const emailResult = await sendCommercialAlertEmail({
+            caseId,
+            alertType: finalResult.alert_type,
+            alertPriority: finalResult.alert_priority,
+            alertReason: finalResult.alert_reason,
+            payload: commercialPayload
+        });
+
+        if (!emailResult.success) {
+            console.warn('[Commercial] Email não enviado:', emailResult.error);
+            finalOutput.warnings.push(`Email não enviado: ${emailResult.error}`);
         }
     }
 
