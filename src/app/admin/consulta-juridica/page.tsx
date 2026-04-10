@@ -5,7 +5,7 @@ import {
   Search, Loader2, AlertCircle, ChevronDown, ChevronUp,
   FileText, Clock, Building2, User, Scale, Hash,
   Calendar, Layers, ArrowRight, X, History, ExternalLink,
-  RefreshCw, Copy, CheckCheck
+  RefreshCw, Copy, CheckCheck, Download
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -178,6 +178,153 @@ function ProcessDetail({ process, onClose }: { process: ProcessResult; onClose: 
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const downloadProcess = () => {
+    const tribunal = getTribunalName(process.tribunal);
+    const poloAtivo = process.titulo_polo_ativo || process.polo_ativo || '—';
+    const poloPassivo = process.titulo_polo_passivo || process.polo_passivo || '—';
+    const allMoves = process.movimentacoes || [];
+    const fontes = process.fontes || [];
+    const geradoEm = new Date().toLocaleString('pt-BR');
+
+    const movesHtml = allMoves.length > 0
+      ? allMoves.map(m => `
+          <tr>
+            <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;white-space:nowrap;color:#6b7280;font-size:13px;vertical-align:top;">${formatDate(m.data)}</td>
+            <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;vertical-align:top;">
+              <strong style="display:block;font-size:13px;color:#111827;margin-bottom:4px;">${m.titulo || m.tipo || 'Movimentação'}</strong>
+              ${m.conteudo ? `<span style="font-size:12px;color:#6b7280;line-height:1.5;">${m.conteudo}</span>` : ''}
+            </td>
+          </tr>`).join('')
+      : '<tr><td colspan="2" style="padding:16px;text-align:center;color:#9ca3af;">Sem movimentações registadas</td></tr>';
+
+    const fontesHtml = fontes.length > 0
+      ? fontes.map((f: any) => `<li style="margin-bottom:4px;font-size:13px;color:#374151;">${f.nome || f.sigla || f.tribunal?.sigla || JSON.stringify(f)}</li>`).join('')
+      : '<li style="font-size:13px;color:#9ca3af;">Nenhuma fonte disponível</li>';
+
+    const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Processo ${process.numero_cnj || 'Sem CNJ'}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #111827; background: #fff; padding: 40px; max-width: 900px; margin: 0 auto; }
+    @media print {
+      body { padding: 20px; }
+      .no-print { display: none !important; }
+      @page { margin: 2cm; }
+    }
+    .header { border-bottom: 3px solid #c2a15f; padding-bottom: 24px; margin-bottom: 32px; }
+    .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+    .brand-name { font-size: 13px; font-weight: 700; letter-spacing: 2px; color: #c2a15f; text-transform: uppercase; }
+    .brand-sep { width: 1px; height: 20px; background: #e5e7eb; }
+    .brand-doc { font-size: 12px; color: #9ca3af; }
+    .cnj { font-size: 22px; font-weight: 800; color: #111827; font-family: monospace; margin-bottom: 6px; }
+    .tribunal-badge { display: inline-block; background: #f3f4f6; border: 1px solid #e5e7eb; padding: 4px 10px; border-radius: 4px; font-size: 12px; color: #374151; font-weight: 600; }
+    .meta-row { display: flex; gap: 24px; margin-top: 16px; flex-wrap: wrap; }
+    .meta-item { font-size: 12px; color: #6b7280; }
+    .meta-item strong { color: #111827; display: block; font-size: 13px; }
+    .section { margin-bottom: 32px; }
+    .section-title { font-size: 10px; font-weight: 700; letter-spacing: 2px; color: #9ca3af; text-transform: uppercase; margin-bottom: 14px; border-bottom: 1px solid #f3f4f6; padding-bottom: 8px; }
+    .parties-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .party-box { background: #f9fafb; border-radius: 8px; padding: 16px; }
+    .party-box.ativo { border-left: 4px solid #c2a15f; }
+    .party-box.passivo { border-left: 4px solid #3b82f6; }
+    .party-role { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #9ca3af; text-transform: uppercase; margin-bottom: 6px; }
+    .party-name { font-size: 15px; font-weight: 700; color: #111827; }
+    .data-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .data-field { background: #f9fafb; border-radius: 6px; padding: 12px 14px; }
+    .data-label { font-size: 10px; letter-spacing: 1px; color: #9ca3af; text-transform: uppercase; margin-bottom: 4px; }
+    .data-value { font-size: 14px; font-weight: 600; color: #111827; }
+    .data-value.gold { color: #c2a15f; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #f9fafb; padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 700; color: #6b7280; letter-spacing: 1px; text-transform: uppercase; border-bottom: 2px solid #e5e7eb; }
+    .fontes-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .fonte-item { background: #f9fafb; padding: 8px 12px; border-radius: 6px; font-size: 13px; color: #374151; }
+    .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+    .footer-text { font-size: 11px; color: #9ca3af; }
+    .print-btn { no-print: true; background: #c2a15f; color: #fff; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 700; font-size: 13px; cursor: pointer; margin-bottom: 24px; }
+    .print-btn:hover { background: #a8894f; }
+  </style>
+</head>
+<body>
+  <button class="print-btn no-print" onclick="window.print()">🖨️ Imprimir / Guardar como PDF</button>
+
+  <div class="header">
+    <div class="brand">
+      <span class="brand-name">Agile Intermediação</span>
+      <span class="brand-sep"></span>
+      <span class="brand-doc">Relatório de Processo Judicial</span>
+    </div>
+    <div class="cnj">${process.numero_cnj || 'CNJ não disponível'}</div>
+    <span class="tribunal-badge">${tribunal}</span>
+    <div class="meta-row">
+      ${process.data_inicio ? `<div class="meta-item"><strong>${formatDate(process.data_inicio)}</strong>Data de Início</div>` : ''}
+      ${process.data_ultima_movimentacao ? `<div class="meta-item"><strong>${formatDate(process.data_ultima_movimentacao)}</strong>Última Movimentação</div>` : ''}
+      ${process.quantidade_movimentacoes != null ? `<div class="meta-item"><strong>${process.quantidade_movimentacoes}</strong>Movimentações</div>` : ''}
+      ${process.valor_causa ? `<div class="meta-item"><strong style="color:#c2a15f;">${formatCurrency(process.valor_causa)}</strong>Valor da Causa</div>` : ''}
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Partes do Processo</div>
+    <div class="parties-grid">
+      <div class="party-box ativo">
+        <div class="party-role">Polo Ativo</div>
+        <div class="party-name">${poloAtivo}</div>
+      </div>
+      <div class="party-box passivo">
+        <div class="party-role">Polo Passivo</div>
+        <div class="party-name">${poloPassivo}</div>
+      </div>
+    </div>
+  </div>
+
+  ${process.assunto || process.status ? `
+  <div class="section">
+    <div class="section-title">Dados Adicionais</div>
+    <div class="data-grid">
+      ${process.assunto ? `<div class="data-field" style="grid-column:1/-1"><div class="data-label">Assunto</div><div class="data-value">${process.assunto}</div></div>` : ''}
+      ${process.status ? `<div class="data-field"><div class="data-label">Status</div><div class="data-value">${process.status}</div></div>` : ''}
+      ${process.quantidade_fontes != null ? `<div class="data-field"><div class="data-label">Instâncias</div><div class="data-value">${process.quantidade_fontes}</div></div>` : ''}
+    </div>
+  </div>` : ''}
+
+  <div class="section">
+    <div class="section-title">Movimentações (${allMoves.length})</div>
+    <table>
+      <thead><tr><th style="width:110px;">Data</th><th>Descrição</th></tr></thead>
+      <tbody>${movesHtml}</tbody>
+    </table>
+  </div>
+
+  ${fontes.length > 0 ? `
+  <div class="section">
+    <div class="section-title">Instâncias / Fontes (${fontes.length})</div>
+    <ul class="fontes-list">
+      ${fontesHtml}
+    </ul>
+  </div>` : ''}
+
+  <div class="footer">
+    <span class="footer-text">Gerado em ${geradoEm} · Fonte: API Escavador v2 · Agile Intermediação</span>
+    <span class="footer-text">Documento informativo — não tem valor jurídico oficial</span>
+  </div>
+</body>
+</html>`;
+
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `processo-${(process.numero_cnj || 'sem-cnj').replace(/[^\d.-]/g, '')}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="detail-panel">
       <div className="detail-header">
@@ -191,7 +338,13 @@ function ProcessDetail({ process, onClose }: { process: ProcessResult; onClose: 
           </div>
           <p className="detail-tribunal">{getTribunalName(process.tribunal)}</p>
         </div>
-        <button className="close-btn" onClick={onClose}><X size={18} /></button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button className="download-btn" onClick={downloadProcess} title="Download do processo completo">
+            <Download size={15} />
+            <span>Download</span>
+          </button>
+          <button className="close-btn" onClick={onClose}><X size={18} /></button>
+        </div>
       </div>
 
       {/* Partes */}
@@ -323,6 +476,13 @@ function ProcessDetail({ process, onClose }: { process: ProcessResult; onClose: 
         .detail-tribunal { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.25rem; }
         .copy-btn { color: var(--text-muted); padding: 2px 4px; border-radius: 4px; transition: 0.2s; }
         .copy-btn:hover { color: var(--primary); }
+        .download-btn {
+          display: flex; align-items: center; gap: 0.4rem;
+          background: rgba(194,161,95,0.1); border: 1px solid rgba(194,161,95,0.25);
+          color: var(--primary); padding: 6px 12px; border-radius: 6px;
+          font-size: 0.78rem; font-weight: 700; transition: 0.2s; cursor: pointer;
+        }
+        .download-btn:hover { background: rgba(194,161,95,0.2); border-color: var(--primary); }
         .close-btn { color: var(--text-muted); padding: 4px; border-radius: 6px; transition: 0.2s; }
         .close-btn:hover { color: var(--text); background: var(--surface-light); }
 
