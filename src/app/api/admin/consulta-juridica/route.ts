@@ -1,4 +1,9 @@
 import { NextResponse } from 'next/server';
+import {
+  requestProcessAutosUpdate,
+  getEscavadorProcessUpdateStatus,
+  getProcessAutosList,
+} from '@/lib/services/external/escavador';
 
 const TOKEN = process.env.ESCAVADOR_API_TOKEN;
 const BASE = process.env.ESCAVADOR_BASE_URL || 'https://api.escavador.com/api/v2';
@@ -6,7 +11,7 @@ const BASE = process.env.ESCAVADOR_BASE_URL || 'https://api.escavador.com/api/v2
 const HEADERS = {
   'Authorization': `Bearer ${TOKEN}`,
   'Content-Type': 'application/json',
-  'X-Requested-With': 'XMLHttpRequest'
+  'X-Requested-With': 'XMLHttpRequest',
 };
 
 export async function POST(request: Request) {
@@ -14,7 +19,67 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: 'Token do Escavador não configurado.' }, { status: 500 });
   }
 
-  const { type, query } = await request.json();
+  const body = await request.json();
+  const { type, query, action, cnj, documentos_especificos } = body;
+
+  // ── Ações de autos (documentos físicos do processo) ────────────────────────
+
+  if (action === 'solicitar-autos') {
+    if (!cnj?.trim()) {
+      return NextResponse.json({ success: false, error: 'CNJ é obrigatório para solicitar autos.' }, { status: 400 });
+    }
+    const result = await requestProcessAutosUpdate(cnj, documentos_especificos);
+    return NextResponse.json(result);
+  }
+
+  if (action === 'status-autos') {
+    if (!cnj?.trim()) {
+      return NextResponse.json({ success: false, error: 'CNJ é obrigatório.' }, { status: 400 });
+    }
+    const result = await getEscavadorProcessUpdateStatus(cnj);
+    return NextResponse.json(result);
+  }
+
+  if (action === 'listar-autos') {
+    if (!cnj?.trim()) {
+      return NextResponse.json({ success: false, error: 'CNJ é obrigatório.' }, { status: 400 });
+    }
+    const result = await getProcessAutosList(cnj);
+    return NextResponse.json(result);
+  }
+
+  // Proxy de download de documento — passa pelo backend para incluir o token
+  if (action === 'download-doc') {
+    const { doc_url } = body;
+    if (!doc_url?.startsWith('https://api.escavador.com/')) {
+      return NextResponse.json({ success: false, error: 'URL de documento inválida.' }, { status: 400 });
+    }
+    try {
+      const docResp = await fetch(doc_url, {
+        headers: {
+          'Authorization': `Bearer ${TOKEN}`,
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        signal: AbortSignal.timeout(30000),
+      });
+      if (!docResp.ok) {
+        return NextResponse.json({ success: false, error: `Erro ${docResp.status} ao baixar documento.` }, { status: docResp.status });
+      }
+      const contentType = docResp.headers.get('content-type') || 'application/octet-stream';
+      const contentDisp = docResp.headers.get('content-disposition') || 'attachment; filename="documento.pdf"';
+      const buffer = await docResp.arrayBuffer();
+      return new Response(buffer, {
+        headers: {
+          'Content-Type': contentType,
+          'Content-Disposition': contentDisp,
+        },
+      });
+    } catch (err: any) {
+      return NextResponse.json({ success: false, error: 'Erro ao baixar documento.' }, { status: 500 });
+    }
+  }
+
+  // ── Busca de processos (comportamento original) ─────────────────────────────
 
   if (!query?.trim()) {
     return NextResponse.json({ success: false, error: 'Informe um valor para pesquisa.' }, { status: 400 });
@@ -22,7 +87,7 @@ export async function POST(request: Request) {
 
   try {
     let url = '';
-    let method = 'GET';
+    const method = 'GET';
 
     if (type === 'cnj') {
       const cleanCNJ = query.replace(/[^\d.-]/g, '');
@@ -51,7 +116,6 @@ export async function POST(request: Request) {
       : [data];
 
     return NextResponse.json({ success: true, type, query, items, total: items.length });
-
   } catch (err: any) {
     console.error('[ConsultaJuridica API]', err);
     return NextResponse.json({ success: false, error: 'Erro de conexão com o Escavador.' }, { status: 500 });

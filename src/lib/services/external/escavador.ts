@@ -4,7 +4,7 @@
  */
 
 const ESCAVADOR_API_TOKEN = process.env.ESCAVADOR_API_TOKEN;
-const ESCAVADOR_BASE_URL = process.env.ESCAVADOR_BASE_URL || 'https://api.escavador.com/api/v1';
+const ESCAVADOR_BASE_URL = process.env.ESCAVADOR_BASE_URL || 'https://api.escavador.com/api/v2';
 
 const HEADERS = {
   'Authorization': `Bearer ${ESCAVADOR_API_TOKEN}`,
@@ -14,40 +14,46 @@ const HEADERS = {
 
 /**
  * Solicita a atualização de um processo de forma assíncrona usando o CNJ.
- * Documentação do Escavador prevê que esta chamada retorna um ID de monitoramento.
+ * Na V2, este endpoint solicita a atualização nos sistemas dos Tribunais.
  */
 export async function requestEscavadorProcessUpdate(processNumber: string) {
   if (!ESCAVADOR_API_TOKEN) {
     return { success: false, error: 'Token do Escavador não configurado no .env.local' };
   }
 
-  // O Escavador, na v1/v2, aceita request assíncrona para atualização via endpoint específico.
-  // URL indicativo baseado na API do Escavador para "async processos"
-  const url = `${ESCAVADOR_BASE_URL}/async/processos`;
   const cleanCNJ = processNumber.replace(/[^\d.-]/g, '');
+  const url = `${ESCAVADOR_BASE_URL}/processos/numero_cnj/${cleanCNJ}/solicitar-atualizacao`;
 
   try {
     const response = await fetch(url, {
       method: 'POST',
       headers: HEADERS,
-      body: JSON.stringify({
-        numero_cnj: cleanCNJ
-      }),
-      // Para chamadas sever-side podemos querer um timeout para não bloquear agentes
       signal: AbortSignal.timeout(10000)
     });
 
     const data = await response.json();
 
     if (!response.ok) {
+        // Tratar 422 como "já está na fila" ou "já atualizado" (não é um erro impeditivo)
+        const msg = data.message?.toLowerCase() || '';
+        const isQueued = msg.includes('aguardando') || msg.includes('processamento');
+        const isUpdated = msg.includes('atualizado hoje');
+
+        if (response.status === 422 && (isQueued || isUpdated)) {
+            return { 
+                success: true, 
+                is_already_queued: isQueued, 
+                is_already_updated: isUpdated,
+                data 
+            };
+        }
         return { success: false, error: data.message || 'Erro na requisição ao Escavador', raw: data };
     }
 
     return { 
       success: true, 
       data, 
-      // O Escavador retorna um id referente à query assíncrona
-      query_id: data.id || data.id_async
+      query_id: data.id // Na V2 o ID da solicitação vem no campo 'id'
     };
   } catch (err: any) {
     console.error('[Escavador API] Erro de rede:', err);
@@ -56,14 +62,15 @@ export async function requestEscavadorProcessUpdate(processNumber: string) {
 }
 
 /**
- * Consulta o status de um pedido assíncrono feito anteriormente no Escavador.
+ * Consulta o status de um pedido de atualização feito anteriormente.
  */
-export async function getEscavadorProcessUpdateStatus(queryId: number | string) {
+export async function getEscavadorProcessUpdateStatus(processNumber: string) {
   if (!ESCAVADOR_API_TOKEN) {
     return { success: false, error: 'Token do Escavador não configurado' };
   }
 
-  const url = `${ESCAVADOR_BASE_URL}/async/resultados/${queryId}`;
+  const cleanCNJ = processNumber.replace(/[^\d.-]/g, '');
+  const url = `${ESCAVADOR_BASE_URL}/processos/numero_cnj/${cleanCNJ}/status-atualizacao`;
 
   try {
     const response = await fetch(url, {
@@ -86,14 +93,109 @@ export async function getEscavadorProcessUpdateStatus(queryId: number | string) 
 }
 
 /**
- * Consulta síncrona diretamente por CNJ (apenas para resgatar dados em cache do Escavador sem forçar tracking atualizado)
+ * Solicita os autos (documentos físicos) de um processo via certificado digital A1.
+ * Requer que o certificado esteja carregado em https://api.escavador.com/certificados
+ *
+ * @param documentosEspecificos - 'INICIAIS' para apenas documentos iniciais (mais rápido/barato), omitir para todos
+ */
+export async function requestProcessAutosUpdate(
+  processNumber: string,
+  documentosEspecificos?: 'INICIAIS'
+) {
+  if (!ESCAVADOR_API_TOKEN) {
+    return { success: false, error: 'Token do Escavador não configurado' };
+  }
+
+  const cleanCNJ = processNumber.replace(/[^\d.-]/g, '');
+  const url = `${ESCAVADOR_BASE_URL}/processos/numero_cnj/${cleanCNJ}/solicitar-atualizacao`;
+
+  const body: Record<string, any> = {
+    autos: 1,
+    utilizar_certificado: 1,
+  };
+  if (documentosEspecificos) {
+    body.documentos_especificos = documentosEspecificos;
+  }
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: HEADERS,
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(15000),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      const msg = data.message?.toLowerCase() || '';
+      const isQueued = msg.includes('aguardando') || msg.includes('processamento');
+      const isUpdated = msg.includes('atualizado hoje');
+
+      if (response.status === 422 && (isQueued || isUpdated)) {
+        return { success: true, is_already_queued: isQueued, is_already_updated: isUpdated, data };
+      }
+
+      // 403 normalmente significa que o certificado não está cadastrado ou não tem acesso ao tribunal
+      if (response.status === 403) {
+        return {
+          success: false,
+          error: 'Certificado digital não autorizado para este tribunal. Verifique se o e-CPF está cadastrado em api.escavador.com/certificados e habilitado no tribunal correspondente.',
+          code: 'CERTIFICADO_NAO_AUTORIZADO',
+          raw: data,
+        };
+      }
+
+      return { success: false, error: data.message || `Erro ${response.status}`, raw: data };
+    }
+
+    return { success: true, data };
+  } catch (err: any) {
+    console.error('[Escavador API] Erro ao solicitar autos:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Lista os documentos (autos) disponíveis de um processo após o status ser SUCESSO.
+ * Cada item retornado contém links.api para download do arquivo.
+ */
+export async function getProcessAutosList(processNumber: string) {
+  if (!ESCAVADOR_API_TOKEN) {
+    return { success: false, error: 'Token do Escavador não configurado' };
+  }
+
+  const cleanCNJ = processNumber.replace(/[^\d.-]/g, '');
+  const url = `${ESCAVADOR_BASE_URL}/processos/numero_cnj/${cleanCNJ}/autos`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: HEADERS,
+      signal: AbortSignal.timeout(15000),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: data.message || `Erro ${response.status}`, raw: data };
+    }
+
+    return { success: true, data };
+  } catch (err: any) {
+    console.error('[Escavador API] Erro ao listar autos:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Consulta síncrona diretamente por CNJ (dados em cache do Escavador)
  */
 export async function getProcessSnapshotByCNJ(processNumber: string) {
     if (!ESCAVADOR_API_TOKEN) {
         return { success: false, error: 'Token não configurado' };
     }
     
-    // Rota de processo genérica do escavador
     const cleanCNJ = processNumber.replace(/[^\d.-]/g, '');
     const url = `${ESCAVADOR_BASE_URL}/processos/numero_cnj/${cleanCNJ}`;
 

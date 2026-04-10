@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Search, Loader2, AlertCircle, ChevronDown, ChevronUp,
   FileText, Clock, Building2, User, Scale, Hash,
   Calendar, Layers, ArrowRight, X, History, ExternalLink,
-  RefreshCw, Copy, CheckCheck, Download
+  RefreshCw, Copy, CheckCheck, Download, FolderOpen, File,
+  ShieldCheck, Info
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -165,9 +166,168 @@ function ProcessCard({ process, onClick, isSelected }: { process: ProcessResult;
   );
 }
 
+type AutosStatus = 'idle' | 'requesting' | 'pendente' | 'sucesso' | 'erro' | 'sem-certificado';
+
+interface AutosDocument {
+  id?: number | string;
+  titulo?: string;
+  nome?: string;
+  tipo?: string;
+  data?: string;
+  tamanho?: number;
+  links?: { api?: string; [key: string]: any };
+  [key: string]: any;
+}
+
 function ProcessDetail({ process, onClose }: { process: ProcessResult; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
   const [showAllMoves, setShowAllMoves] = useState(false);
+
+  // ── Autos (documentos físicos) ──────────────────────────────────────────────
+  const [autosStatus, setAutosStatus] = useState<AutosStatus>('idle');
+  const [autosError, setAutosError] = useState<string | null>(null);
+  const [autosDocs, setAutosDocs] = useState<AutosDocument[]>([]);
+  const [autosMsg, setAutosMsg] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
+  const cnj = process.numero_cnj;
+
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+  }, []);
+
+  const checkAutosStatus = useCallback(async () => {
+    if (!cnj) return;
+    try {
+      const res = await fetch('/api/admin/consulta-juridica', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'status-autos', cnj }),
+      });
+      const data = await res.json();
+      const statusRaw = (data?.data?.status || '').toUpperCase();
+
+      if (statusRaw === 'SUCESSO') {
+        stopPolling();
+        setAutosStatus('sucesso');
+        // Buscar a lista de documentos
+        const listRes = await fetch('/api/admin/consulta-juridica', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'listar-autos', cnj }),
+        });
+        const listData = await listRes.json();
+        const docs = listData?.data?.items || listData?.data || [];
+        setAutosDocs(Array.isArray(docs) ? docs : []);
+      } else if (statusRaw === 'ERRO') {
+        stopPolling();
+        setAutosStatus('erro');
+        setAutosError('O Escavador retornou erro ao acessar o tribunal. Tente novamente.');
+      }
+      // PENDENTE → continua polling
+    } catch {
+      // silencioso, tenta no próximo ciclo
+    }
+  }, [cnj, stopPolling]);
+
+  const solicitarAutos = async () => {
+    if (!cnj) return;
+    setAutosStatus('requesting');
+    setAutosError(null);
+    setAutosDocs([]);
+    setAutosMsg(null);
+
+    try {
+      const res = await fetch('/api/admin/consulta-juridica', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'solicitar-autos', cnj }),
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        if (data.code === 'CERTIFICADO_NAO_AUTORIZADO') {
+          setAutosStatus('sem-certificado');
+        } else {
+          setAutosStatus('erro');
+          setAutosError(data.error || 'Erro ao solicitar autos.');
+        }
+        return;
+      }
+
+      if (data.is_already_updated) {
+        // Já tem autos, buscar diretamente
+        setAutosStatus('sucesso');
+        const listRes = await fetch('/api/admin/consulta-juridica', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'listar-autos', cnj }),
+        });
+        const listData = await listRes.json();
+        const docs = listData?.data?.items || listData?.data || [];
+        setAutosDocs(Array.isArray(docs) ? docs : []);
+        setAutosMsg('Documentos já disponíveis.');
+      } else {
+        // Solicitar feito, entrar em polling
+        setAutosStatus('pendente');
+        setAutosMsg('Solicitação enviada. O Escavador está a aceder ao tribunal...');
+        pollingRef.current = setInterval(checkAutosStatus, 12000);
+      }
+    } catch (err: any) {
+      setAutosStatus('erro');
+      setAutosError('Erro de conexão. Tente novamente.');
+    }
+  };
+
+  const downloadDoc = async (doc: AutosDocument, index: number) => {
+    const docId = String(doc.id || index);
+    const apiUrl = doc.links?.api;
+    if (!apiUrl) return;
+
+    setDownloadingId(docId);
+    try {
+      // Proxy via backend — o token fica seguro no servidor
+      const res = await fetch('/api/admin/consulta-juridica', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'download-doc', doc_url: apiUrl }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || 'Não foi possível baixar o documento.');
+        return;
+      }
+
+      // Determina nome do arquivo pelo header ou título do documento
+      const disposition = res.headers.get('content-disposition') || '';
+      const filenameMatch = disposition.match(/filename="?([^";\n]+)"?/i);
+      const filename = filenameMatch?.[1] || `${doc.titulo || doc.tipo || 'documento'}.pdf`;
+
+      // Criar Blob e forçar download
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename.replace(/[^\w\s.-]/g, '_');
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('Não foi possível baixar o documento. Verifique a ligação e tente novamente.');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  useEffect(() => {
+    return () => stopPolling(); // limpar ao desmontar
+  }, [stopPolling]);
 
   const movimentacoes = process.movimentacoes || [];
   const visibleMoves = showAllMoves ? movimentacoes : movimentacoes.slice(0, 5);
@@ -451,6 +611,121 @@ function ProcessDetail({ process, onClose }: { process: ProcessResult; onClose: 
         </div>
       )}
 
+      {/* ── Autos: Documentos do Processo ─────────────────────────────────── */}
+      {cnj && (
+        <div className="detail-section">
+          <h4 className="detail-section-title">DOCUMENTOS DO PROCESSO (AUTOS)</h4>
+
+          {/* Estado: idle — botão inicial */}
+          {autosStatus === 'idle' && (
+            <div className="autos-idle">
+              <div className="autos-info">
+                <ShieldCheck size={16} style={{ color: '#c2a15f', flexShrink: 0 }} />
+                <p>Para aceder aos documentos originais (petições, sentenças, decisões) é necessário um certificado digital A1 (e-CPF de advogado) registado no <a href="https://api.escavador.com/certificados" target="_blank" rel="noreferrer" style={{ color: '#c2a15f' }}>painel do Escavador</a>.</p>
+              </div>
+              <button className="autos-btn" onClick={solicitarAutos}>
+                <FolderOpen size={15} />
+                Solicitar Documentos
+              </button>
+            </div>
+          )}
+
+          {/* Estado: requesting */}
+          {autosStatus === 'requesting' && (
+            <div className="autos-state">
+              <Loader2 size={18} className="spin gold" />
+              <span>Enviando solicitação ao Escavador...</span>
+            </div>
+          )}
+
+          {/* Estado: pendente (polling) */}
+          {autosStatus === 'pendente' && (
+            <div className="autos-state pendente">
+              <Loader2 size={18} className="spin" style={{ color: '#f59e0b' }} />
+              <div>
+                <strong>A processar...</strong>
+                <p>{autosMsg || 'O Escavador está a aceder ao tribunal. Verificando a cada 12 segundos...'}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Estado: sem-certificado */}
+          {autosStatus === 'sem-certificado' && (
+            <div className="autos-state erro">
+              <Info size={18} style={{ color: '#f59e0b', flexShrink: 0 }} />
+              <div>
+                <strong>Certificado Digital Necessário</strong>
+                <p>Para aceder aos autos é preciso fazer upload do certificado A1 (e-CPF do advogado) em <a href="https://api.escavador.com/certificados" target="_blank" rel="noreferrer" style={{ color: '#c2a15f' }}>api.escavador.com/certificados</a>. O advogado precisa estar cadastrado no tribunal deste processo.</p>
+                <button className="autos-retry-btn" onClick={() => setAutosStatus('idle')} style={{ marginTop: '0.5rem' }}>
+                  Voltar
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Estado: erro */}
+          {autosStatus === 'erro' && (
+            <div className="autos-state erro">
+              <AlertCircle size={18} style={{ color: '#ef4444', flexShrink: 0 }} />
+              <div>
+                <strong>Erro ao solicitar documentos</strong>
+                <p>{autosError}</p>
+                <button className="autos-retry-btn" onClick={solicitarAutos} style={{ marginTop: '0.5rem' }}>
+                  <RefreshCw size={13} /> Tentar novamente
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Estado: sucesso — lista de documentos */}
+          {autosStatus === 'sucesso' && (
+            <div>
+              {autosMsg && (
+                <p style={{ fontSize: '0.75rem', color: '#10b981', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <ShieldCheck size={13} /> {autosMsg}
+                </p>
+              )}
+              {autosDocs.length === 0 ? (
+                <div className="autos-state">
+                  <Info size={16} style={{ color: 'var(--text-muted)' }} />
+                  <span>Nenhum documento disponível para download neste processo.</span>
+                </div>
+              ) : (
+                <div className="autos-docs-list">
+                  {autosDocs.map((doc, i) => {
+                    const docId = String(doc.id || i);
+                    const label = doc.titulo || doc.nome || doc.tipo || `Documento ${i + 1}`;
+                    const hasLink = !!doc.links?.api;
+                    return (
+                      <div key={docId} className="autos-doc-item">
+                        <File size={14} style={{ color: '#c2a15f', flexShrink: 0 }} />
+                        <div className="autos-doc-info">
+                          <span className="autos-doc-title">{label}</span>
+                          {doc.data && <span className="autos-doc-meta">{formatDate(doc.data)}</span>}
+                          {doc.tipo && doc.tipo !== label && <span className="autos-doc-meta">{doc.tipo}</span>}
+                        </div>
+                        {hasLink ? (
+                          <button
+                            className="autos-doc-btn"
+                            onClick={() => downloadDoc(doc, i)}
+                            disabled={downloadingId === docId}
+                          >
+                            {downloadingId === docId ? <Loader2 size={13} className="spin" /> : <Download size={13} />}
+                            <span>{downloadingId === docId ? 'A baixar...' : 'Download'}</span>
+                          </button>
+                        ) : (
+                          <span className="autos-doc-no-link">Sem link</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Raw JSON para debug */}
       <details className="detail-raw">
         <summary>Dados brutos (JSON)</summary>
@@ -518,6 +793,29 @@ function ProcessDetail({ process, onClose }: { process: ProcessResult; onClose: 
         .detail-raw { margin-top: 0; }
         .detail-raw summary { padding: 0.75rem 1.4rem; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; }
         .detail-raw pre { background: #0a0a0a; padding: 1rem 1.4rem; font-size: 0.72rem; color: #a0aec0; overflow-x: auto; max-height: 300px; }
+
+        /* Autos styles */
+        .autos-idle { display: flex; flex-direction: column; gap: 0.75rem; }
+        .autos-info { display: flex; align-items: flex-start; gap: 0.6rem; background: rgba(194,161,95,0.06); border: 1px solid rgba(194,161,95,0.15); border-radius: 8px; padding: 0.8rem 1rem; }
+        .autos-info p { font-size: 0.78rem; color: var(--text-muted); line-height: 1.5; margin: 0; }
+        .autos-btn { display: flex; align-items: center; gap: 0.5rem; background: rgba(194,161,95,0.12); border: 1px solid rgba(194,161,95,0.3); color: var(--primary); padding: 8px 16px; border-radius: 6px; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: 0.2s; align-self: flex-start; }
+        .autos-btn:hover { background: rgba(194,161,95,0.22); border-color: var(--primary); }
+        .autos-state { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.9rem 1rem; border-radius: 8px; background: var(--surface-light); font-size: 0.8rem; color: var(--text-muted); }
+        .autos-state strong { display: block; font-size: 0.82rem; color: var(--text); margin-bottom: 0.2rem; }
+        .autos-state p { margin: 0; font-size: 0.76rem; line-height: 1.5; }
+        .autos-state.pendente { background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.2); }
+        .autos-state.erro { background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.15); }
+        .autos-retry-btn { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.75rem; color: var(--primary); font-weight: 600; cursor: pointer; background: none; border: none; padding: 0; }
+        .autos-docs-list { display: flex; flex-direction: column; gap: 0.4rem; }
+        .autos-doc-item { display: flex; align-items: center; gap: 0.75rem; background: var(--surface-light); border-radius: 6px; padding: 0.65rem 0.9rem; transition: 0.15s; }
+        .autos-doc-item:hover { border-color: rgba(194,161,95,0.2); }
+        .autos-doc-info { flex: 1; min-width: 0; }
+        .autos-doc-title { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .autos-doc-meta { font-size: 0.7rem; color: var(--text-muted); margin-right: 0.5rem; }
+        .autos-doc-btn { display: flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; font-weight: 700; color: var(--primary); background: rgba(194,161,95,0.1); border: 1px solid rgba(194,161,95,0.2); padding: 4px 10px; border-radius: 4px; cursor: pointer; white-space: nowrap; transition: 0.15s; flex-shrink: 0; }
+        .autos-doc-btn:hover { background: rgba(194,161,95,0.2); }
+        .autos-doc-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .autos-doc-no-link { font-size: 0.7rem; color: var(--text-muted); flex-shrink: 0; }
       `}</style>
     </div>
   );
